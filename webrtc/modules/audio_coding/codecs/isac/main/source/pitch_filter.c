@@ -8,13 +8,13 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "pitch_estimator.h"
-
 #include <math.h>
 #include <memory.h>
 #include <stdlib.h>
 
-#include "os_specific_inline.h"
+#include "modules/audio_coding/codecs/isac/main/source/pitch_estimator.h"
+#include "modules/audio_coding/codecs/isac/main/source/os_specific_inline.h"
+#include "rtc_base/compile_assert_c.h"
 
 /*
  * We are implementing the following filters;
@@ -275,6 +275,11 @@ static void FilterFrame(const double* in_data, PitchFiltstr* filter_state,
   /* Copy states to local variables. */
   memcpy(filter_parameters.buffer, filter_state->ubuf,
          sizeof(filter_state->ubuf));
+  RTC_COMPILE_ASSERT(sizeof(filter_parameters.buffer) >=
+                 sizeof(filter_state->ubuf));
+  memset(filter_parameters.buffer +
+             sizeof(filter_state->ubuf) / sizeof(filter_state->ubuf[0]),
+         0, sizeof(filter_parameters.buffer) - sizeof(filter_state->ubuf));
   memcpy(filter_parameters.damper_state, filter_state->ystate,
          sizeof(filter_state->ystate));
 

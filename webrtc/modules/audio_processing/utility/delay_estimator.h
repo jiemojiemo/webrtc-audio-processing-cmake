@@ -11,10 +11,12 @@
 // Performs delay estimation on binary converted spectra.
 // The return value is  0 - OK and -1 - Error, unless otherwise stated.
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_H_
+#ifndef MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_H_
+#define MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_H_
 
-#include "webrtc/typedefs.h"
+#include <stdint.h>
+
+namespace webrtc {
 
 static const int32_t kMaxBitCountsQ9 = (32 << 9);  // 32 matching bits in Q9.
 
@@ -117,7 +119,8 @@ void WebRtc_InitBinaryDelayEstimatorFarend(BinaryDelayEstimatorFarend* self);
 //    - delay_shift   : The amount of blocks to shift history buffers.
 //
 void WebRtc_SoftResetBinaryDelayEstimatorFarend(
-    BinaryDelayEstimatorFarend* self, int delay_shift);
+    BinaryDelayEstimatorFarend* self,
+    int delay_shift);
 
 // Adds the binary far-end spectrum to the internal far-end history buffer. This
 // spectrum is used as reference when calculating the delay using
@@ -153,7 +156,8 @@ void WebRtc_FreeBinaryDelayEstimator(BinaryDelayEstimator* self);
 // See WebRtc_CreateDelayEstimator(..) in delay_estimator_wrapper.c for detailed
 // description.
 BinaryDelayEstimator* WebRtc_CreateBinaryDelayEstimator(
-    BinaryDelayEstimatorFarend* farend, int max_lookahead);
+    BinaryDelayEstimatorFarend* farend,
+    int max_lookahead);
 
 // Re-allocates |history_size| dependent buffers. The far-end buffers will be
 // updated at the same time if needed.
@@ -248,4 +252,6 @@ void WebRtc_MeanEstimatorFix(int32_t new_value,
                              int factor,
                              int32_t* mean_value);
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_H_
+}  // namespace webrtc
+
+#endif  // MODULES_AUDIO_PROCESSING_UTILITY_DELAY_ESTIMATOR_H_

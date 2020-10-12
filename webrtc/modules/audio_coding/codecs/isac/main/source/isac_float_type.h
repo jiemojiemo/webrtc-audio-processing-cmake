@@ -8,10 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_CODING_CODECS_ISAC_MAIN_SOURCE_ISAC_FLOAT_TYPE_H_
-#define WEBRTC_MODULES_AUDIO_CODING_CODECS_ISAC_MAIN_SOURCE_ISAC_FLOAT_TYPE_H_
+#ifndef MODULES_AUDIO_CODING_CODECS_ISAC_MAIN_SOURCE_ISAC_FLOAT_TYPE_H_
+#define MODULES_AUDIO_CODING_CODECS_ISAC_MAIN_SOURCE_ISAC_FLOAT_TYPE_H_
 
-#include "webrtc/modules/audio_coding/codecs/isac/main/include/isac.h"
+#include "modules/audio_coding/codecs/isac/main/include/isac.h"
 
 namespace webrtc {
 
@@ -64,20 +64,12 @@ struct IsacFloat {
   static inline int16_t Free(instance_type* inst) {
     return WebRtcIsac_Free(inst);
   }
-  static inline void GetBandwidthInfo(instance_type* inst,
-                                      IsacBandwidthInfo* bwinfo) {
-    WebRtcIsac_GetBandwidthInfo(inst, bwinfo);
-  }
   static inline int16_t GetErrorCode(instance_type* inst) {
     return WebRtcIsac_GetErrorCode(inst);
   }
 
   static inline int16_t GetNewFrameLen(instance_type* inst) {
     return WebRtcIsac_GetNewFrameLen(inst);
-  }
-  static inline void SetBandwidthInfo(instance_type* inst,
-                                      const IsacBandwidthInfo* bwinfo) {
-    WebRtcIsac_SetBandwidthInfo(inst, bwinfo);
   }
   static inline int16_t SetDecSampRate(instance_type* inst,
                                        uint16_t sample_rate_hz) {
@@ -95,15 +87,6 @@ struct IsacFloat {
                                              int bottleneck_bits_per_second) {
     WebRtcIsac_SetInitialBweBottleneck(inst, bottleneck_bits_per_second);
   }
-  static inline int16_t UpdateBwEstimate(instance_type* inst,
-                                         const uint8_t* encoded,
-                                         size_t packet_size,
-                                         uint16_t rtp_seq_number,
-                                         uint32_t send_ts,
-                                         uint32_t arr_ts) {
-    return WebRtcIsac_UpdateBwEstimate(inst, encoded, packet_size,
-                                       rtp_seq_number, send_ts, arr_ts);
-  }
   static inline int16_t SetMaxPayloadSize(instance_type* inst,
                                           int16_t max_payload_size_bytes) {
     return WebRtcIsac_SetMaxPayloadSize(inst, max_payload_size_bytes);
@@ -114,4 +97,4 @@ struct IsacFloat {
 };
 
 }  // namespace webrtc
-#endif  // WEBRTC_MODULES_AUDIO_CODING_CODECS_ISAC_MAIN_SOURCE_ISAC_FLOAT_TYPE_H_
+#endif  // MODULES_AUDIO_CODING_CODECS_ISAC_MAIN_SOURCE_ISAC_FLOAT_TYPE_H_

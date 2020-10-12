@@ -8,7 +8,7 @@ project source code.
    webrtc git repository Chromium uses.
 
 2. Instructions on checking out the Chromium tree are on the
-   [Chromium site][get-chromium]. As a shortcut, you can look at the DEPS file
+   [WebRTC repo][get-webrtc]. As a shortcut, you can look at the DEPS file
    in the Chromium tree for the current webrtc version being used, and then
    just use that commit hash with the webrtc tree.
 
@@ -61,6 +61,6 @@ project source code.
    * Run some test streams through the canceller to make sure it is working
      fine.
 
-[get-chromium]: http://dev.chromium.org/developers/how-tos/get-the-code
+[get-webrtc]: https://webrtc.googlesource.com/src/
 [meld]: http://meldmerge.org/
 [libtool-version-info]: https://www.gnu.org/software/libtool/manual/html_node/Updating-version-info.html

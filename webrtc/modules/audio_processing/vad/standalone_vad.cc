@@ -8,21 +8,19 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/modules/audio_processing/vad/standalone_vad.h"
+#include "modules/audio_processing/vad/standalone_vad.h"
 
-#include <assert.h>
+#include <string.h>
 
-#include "webrtc/modules/interface/module_common_types.h"
-#include "webrtc/modules/utility/interface/audio_frame_operations.h"
-#include "webrtc/typedefs.h"
+#include "common_audio/vad/include/webrtc_vad.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 
 static const int kDefaultStandaloneVadMode = 3;
 
 StandaloneVad::StandaloneVad(VadInst* vad)
-    : vad_(vad), buffer_(), index_(0), mode_(kDefaultStandaloneVadMode) {
-}
+    : vad_(vad), buffer_(), index_(0), mode_(kDefaultStandaloneVadMode) {}
 
 StandaloneVad::~StandaloneVad() {
   WebRtcVad_Free(vad_);
@@ -64,7 +62,7 @@ int StandaloneVad::GetActivity(double* p, size_t length_p) {
   const size_t num_frames = index_ / kLength10Ms;
   if (num_frames > length_p)
     return -1;
-  assert(WebRtcVad_ValidRateAndFrameLength(kSampleRateHz, index_) == 0);
+  RTC_DCHECK_EQ(0, WebRtcVad_ValidRateAndFrameLength(kSampleRateHz, index_));
 
   int activity = WebRtcVad_Process(vad_, kSampleRateHz, buffer_, index_);
   if (activity < 0)

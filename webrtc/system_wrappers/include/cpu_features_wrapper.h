@@ -8,44 +8,35 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_SYSTEM_WRAPPERS_INCLUDE_CPU_FEATURES_WRAPPER_H_
-#define WEBRTC_SYSTEM_WRAPPERS_INCLUDE_CPU_FEATURES_WRAPPER_H_
+#ifndef SYSTEM_WRAPPERS_INCLUDE_CPU_FEATURES_WRAPPER_H_
+#define SYSTEM_WRAPPERS_INCLUDE_CPU_FEATURES_WRAPPER_H_
 
-#if defined(__cplusplus) || defined(c_plusplus)
-extern "C" {
-#endif
+#include <stdint.h>
 
-#include "webrtc/typedefs.h"
+namespace webrtc {
 
 // List of features in x86.
-typedef enum {
-  kSSE2,
-  kSSE3
-} CPUFeature;
+typedef enum { kSSE2, kSSE3, kAVX2 } CPUFeature;
 
 // List of features in ARM.
 enum {
-  kCPUFeatureARMv7       = (1 << 0),
-  kCPUFeatureVFPv3       = (1 << 1),
-  kCPUFeatureNEON        = (1 << 2),
-  kCPUFeatureLDREXSTREX  = (1 << 3)
+  kCPUFeatureARMv7 = (1 << 0),
+  kCPUFeatureVFPv3 = (1 << 1),
+  kCPUFeatureNEON = (1 << 2),
+  kCPUFeatureLDREXSTREX = (1 << 3)
 };
 
-typedef int (*WebRtc_CPUInfo)(CPUFeature feature);
-
 // Returns true if the CPU supports the feature.
-extern WebRtc_CPUInfo WebRtc_GetCPUInfo;
+int GetCPUInfo(CPUFeature feature);
 
 // No CPU feature is available => straight C path.
-extern WebRtc_CPUInfo WebRtc_GetCPUInfoNoASM;
+int GetCPUInfoNoASM(CPUFeature feature);
 
 // Return the features in an ARM device.
 // It detects the features in the hardware platform, and returns supported
 // values in the above enum definition as a bitmask.
-extern uint64_t WebRtc_GetCPUFeaturesARM(void);
+uint64_t GetCPUFeaturesARM(void);
 
-#if defined(__cplusplus) || defined(c_plusplus)
-}  // extern "C"
-#endif
+}  // namespace webrtc
 
-#endif // WEBRTC_SYSTEM_WRAPPERS_INCLUDE_CPU_FEATURES_WRAPPER_H_
+#endif  // SYSTEM_WRAPPERS_INCLUDE_CPU_FEATURES_WRAPPER_H_

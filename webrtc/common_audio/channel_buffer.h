@@ -8,17 +8,18 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_CHANNEL_BUFFER_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_CHANNEL_BUFFER_H_
+#ifndef COMMON_AUDIO_CHANNEL_BUFFER_H_
+#define COMMON_AUDIO_CHANNEL_BUFFER_H_
 
 #include <string.h>
 
-#include "webrtc/base/checks.h"
-#include "webrtc/base/scoped_ptr.h"
-#include "webrtc/common_audio/include/audio_util.h"
-#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
-#include "webrtc/test/testsupport/gtest_prod_util.h"
-#endif
+#include <memory>
+#include <vector>
+
+#include "api/array_view.h"
+#include "common_audio/include/audio_util.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/gtest_prod_util.h"
 
 namespace webrtc {
 
@@ -41,48 +42,67 @@ namespace webrtc {
 template <typename T>
 class ChannelBuffer {
  public:
-  ChannelBuffer(size_t num_frames,
-                int num_channels,
-                size_t num_bands = 1)
+  ChannelBuffer(size_t num_frames, size_t num_channels, size_t num_bands = 1)
       : data_(new T[num_frames * num_channels]()),
         channels_(new T*[num_channels * num_bands]),
         bands_(new T*[num_channels * num_bands]),
         num_frames_(num_frames),
         num_frames_per_band_(num_frames / num_bands),
+        num_allocated_channels_(num_channels),
         num_channels_(num_channels),
-        num_bands_(num_bands) {
-    for (int i = 0; i < num_channels_; ++i) {
-      for (size_t j = 0; j < num_bands_; ++j) {
-        channels_[j * num_channels_ + i] =
-            &data_[i * num_frames_ + j * num_frames_per_band_];
-        bands_[i * num_bands_ + j] = channels_[j * num_channels_ + i];
+        num_bands_(num_bands),
+        bands_view_(num_allocated_channels_,
+                    std::vector<rtc::ArrayView<T>>(num_bands_)),
+        channels_view_(
+            num_bands_,
+            std::vector<rtc::ArrayView<T>>(num_allocated_channels_)) {
+    // Temporarily cast away const_ness to allow populating the array views.
+    auto* bands_view =
+        const_cast<std::vector<std::vector<rtc::ArrayView<T>>>*>(&bands_view_);
+    auto* channels_view =
+        const_cast<std::vector<std::vector<rtc::ArrayView<T>>>*>(
+            &channels_view_);
+
+    for (size_t ch = 0; ch < num_allocated_channels_; ++ch) {
+      for (size_t band = 0; band < num_bands_; ++band) {
+        (*channels_view)[band][ch] = rtc::ArrayView<T>(
+            &data_[ch * num_frames_ + band * num_frames_per_band_],
+            num_frames_per_band_);
+        (*bands_view)[ch][band] = channels_view_[band][ch];
+        channels_[band * num_allocated_channels_ + ch] =
+            channels_view_[band][ch].data();
+        bands_[ch * num_bands_ + band] =
+            channels_[band * num_allocated_channels_ + ch];
       }
     }
   }
 
-  // Returns a pointer array to the full-band channels (or lower band channels).
-  // Usage:
-  // channels()[channel][sample].
-  // Where:
-  // 0 <= channel < |num_channels_|
-  // 0 <= sample < |num_frames_|
-  T* const* channels() { return channels(0); }
-  const T* const* channels() const { return channels(0); }
-
-  // Returns a pointer array to the channels for a specific band.
-  // Usage:
-  // channels(band)[channel][sample].
+  // Returns a pointer array to the channels.
+  // If band is explicitly specificed, the channels for a specific band are
+  // returned and the usage becomes: channels(band)[channel][sample].
   // Where:
   // 0 <= band < |num_bands_|
-  // 0 <= channel < |num_channels_|
+  // 0 <= channel < |num_allocated_channels_|
   // 0 <= sample < |num_frames_per_band_|
-  const T* const* channels(size_t band) const {
+
+  // If band is not explicitly specified, the full-band channels (or lower band
+  // channels) are returned and the usage becomes: channels()[channel][sample].
+  // Where:
+  // 0 <= channel < |num_allocated_channels_|
+  // 0 <= sample < |num_frames_|
+  const T* const* channels(size_t band = 0) const {
     RTC_DCHECK_LT(band, num_bands_);
-    return &channels_[band * num_channels_];
+    return &channels_[band * num_allocated_channels_];
   }
-  T* const* channels(size_t band) {
+  T* const* channels(size_t band = 0) {
     const ChannelBuffer<T>* t = this;
     return const_cast<T* const*>(t->channels(band));
+  }
+  rtc::ArrayView<const rtc::ArrayView<T>> channels_view(size_t band = 0) {
+    return channels_view_[band];
+  }
+  rtc::ArrayView<const rtc::ArrayView<T>> channels_view(size_t band = 0) const {
+    return channels_view_[band];
   }
 
   // Returns a pointer array to the bands for a specific channel.
@@ -92,21 +112,28 @@ class ChannelBuffer {
   // 0 <= channel < |num_channels_|
   // 0 <= band < |num_bands_|
   // 0 <= sample < |num_frames_per_band_|
-  const T* const* bands(int channel) const {
+  const T* const* bands(size_t channel) const {
     RTC_DCHECK_LT(channel, num_channels_);
     RTC_DCHECK_GE(channel, 0);
     return &bands_[channel * num_bands_];
   }
-  T* const* bands(int channel) {
+  T* const* bands(size_t channel) {
     const ChannelBuffer<T>* t = this;
     return const_cast<T* const*>(t->bands(channel));
+  }
+
+  rtc::ArrayView<const rtc::ArrayView<T>> bands_view(size_t channel) {
+    return bands_view_[channel];
+  }
+  rtc::ArrayView<const rtc::ArrayView<T>> bands_view(size_t channel) const {
+    return bands_view_[channel];
   }
 
   // Sets the |slice| pointers to the |start_frame| position for each channel.
   // Returns |slice| for convenience.
   const T* const* Slice(T** slice, size_t start_frame) const {
     RTC_DCHECK_LT(start_frame, num_frames_);
-    for (int i = 0; i < num_channels_; ++i)
+    for (size_t i = 0; i < num_channels_; ++i)
       slice[i] = &channels_[i][start_frame];
     return slice;
   }
@@ -117,9 +144,14 @@ class ChannelBuffer {
 
   size_t num_frames() const { return num_frames_; }
   size_t num_frames_per_band() const { return num_frames_per_band_; }
-  int num_channels() const { return num_channels_; }
+  size_t num_channels() const { return num_channels_; }
   size_t num_bands() const { return num_bands_; }
-  size_t size() const {return num_frames_ * num_channels_; }
+  size_t size() const { return num_frames_ * num_allocated_channels_; }
+
+  void set_num_channels(size_t num_channels) {
+    RTC_DCHECK_LE(num_channels, num_allocated_channels_);
+    num_channels_ = num_channels;
+  }
 
   void SetDataForTesting(const T* data, size_t size) {
     RTC_CHECK_EQ(size, this->size());
@@ -127,13 +159,18 @@ class ChannelBuffer {
   }
 
  private:
-  rtc::scoped_ptr<T[]> data_;
-  rtc::scoped_ptr<T* []> channels_;
-  rtc::scoped_ptr<T* []> bands_;
+  std::unique_ptr<T[]> data_;
+  std::unique_ptr<T*[]> channels_;
+  std::unique_ptr<T*[]> bands_;
   const size_t num_frames_;
   const size_t num_frames_per_band_;
-  const int num_channels_;
+  // Number of channels the internal buffer holds.
+  const size_t num_allocated_channels_;
+  // Number of channels the user sees.
+  size_t num_channels_;
   const size_t num_bands_;
+  const std::vector<std::vector<rtc::ArrayView<T>>> bands_view_;
+  const std::vector<std::vector<rtc::ArrayView<T>>> channels_view_;
 };
 
 // One int16_t and one float ChannelBuffer that are kept in sync. The sync is
@@ -144,7 +181,8 @@ class ChannelBuffer {
 // fbuf() until the next call to any of the other functions.
 class IFChannelBuffer {
  public:
-  IFChannelBuffer(size_t num_frames, int num_channels, size_t num_bands = 1);
+  IFChannelBuffer(size_t num_frames, size_t num_channels, size_t num_bands = 1);
+  ~IFChannelBuffer();
 
   ChannelBuffer<int16_t>* ibuf();
   ChannelBuffer<float>* fbuf();
@@ -153,7 +191,13 @@ class IFChannelBuffer {
 
   size_t num_frames() const { return ibuf_.num_frames(); }
   size_t num_frames_per_band() const { return ibuf_.num_frames_per_band(); }
-  int num_channels() const { return ibuf_.num_channels(); }
+  size_t num_channels() const {
+    return ivalid_ ? ibuf_.num_channels() : fbuf_.num_channels();
+  }
+  void set_num_channels(size_t num_channels) {
+    ibuf_.set_num_channels(num_channels);
+    fbuf_.set_num_channels(num_channels);
+  }
   size_t num_bands() const { return ibuf_.num_bands(); }
 
  private:
@@ -168,4 +212,4 @@ class IFChannelBuffer {
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_CHANNEL_BUFFER_H_
+#endif  // COMMON_AUDIO_CHANNEL_BUFFER_H_

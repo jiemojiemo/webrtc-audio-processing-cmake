@@ -8,18 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/modules/audio_processing/agc/agc.h"
+#include "modules/audio_processing/agc/agc.h"
 
 #include <cmath>
 #include <cstdlib>
-
-#include <algorithm>
 #include <vector>
 
-#include "webrtc/base/checks.h"
-#include "webrtc/modules/audio_processing/agc/histogram.h"
-#include "webrtc/modules/audio_processing/agc/utility.h"
-#include "webrtc/modules/interface/module_common_types.h"
+#include "modules/audio_processing/agc/loudness_histogram.h"
+#include "modules/audio_processing/agc/utility.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 namespace {
@@ -33,23 +30,12 @@ const double kActivityThreshold = 0.3;
 Agc::Agc()
     : target_level_loudness_(Dbfs2Loudness(kDefaultLevelDbfs)),
       target_level_dbfs_(kDefaultLevelDbfs),
-      histogram_(Histogram::Create(kNumAnalysisFrames)),
-      inactive_histogram_(Histogram::Create()) {
-  }
+      histogram_(LoudnessHistogram::Create(kNumAnalysisFrames)),
+      inactive_histogram_(LoudnessHistogram::Create()) {}
 
-Agc::~Agc() {}
+Agc::~Agc() = default;
 
-float Agc::AnalyzePreproc(const int16_t* audio, size_t length) {
-  assert(length > 0);
-  size_t num_clipped = 0;
-  for (size_t i = 0; i < length; ++i) {
-    if (audio[i] == 32767 || audio[i] == -32768)
-      ++num_clipped;
-  }
-  return 1.0f * num_clipped / length;
-}
-
-int Agc::Process(const int16_t* audio, size_t length, int sample_rate_hz) {
+void Agc::Process(const int16_t* audio, size_t length, int sample_rate_hz) {
   vad_.ProcessChunk(audio, length, sample_rate_hz);
   const std::vector<double>& rms = vad_.chunkwise_rms();
   const std::vector<double>& probabilities =
@@ -58,12 +44,11 @@ int Agc::Process(const int16_t* audio, size_t length, int sample_rate_hz) {
   for (size_t i = 0; i < rms.size(); ++i) {
     histogram_->Update(rms[i], probabilities[i]);
   }
-  return 0;
 }
 
 bool Agc::GetRmsErrorDb(int* error) {
   if (!error) {
-    assert(false);
+    RTC_NOTREACHED();
     return false;
   }
 
@@ -96,6 +81,14 @@ int Agc::set_target_level_dbfs(int level) {
   target_level_dbfs_ = level;
   target_level_loudness_ = Dbfs2Loudness(level);
   return 0;
+}
+
+int Agc::target_level_dbfs() const {
+  return target_level_dbfs_;
+}
+
+float Agc::voice_probability() const {
+  return vad_.last_voice_probability();
 }
 
 }  // namespace webrtc

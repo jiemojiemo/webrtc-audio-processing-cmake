@@ -11,16 +11,17 @@
 // Modified from the Chromium original here:
 // src/media/base/sinc_resampler.h
 
-#ifndef WEBRTC_COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_
-#define WEBRTC_COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_
+#ifndef COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_
+#define COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_
 
-#include "webrtc/base/constructormagic.h"
-#include "webrtc/base/scoped_ptr.h"
-#include "webrtc/system_wrappers/include/aligned_malloc.h"
-#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
-#include "webrtc/test/testsupport/gtest_prod_util.h"
-#endif
-#include "webrtc/typedefs.h"
+#include <stddef.h>
+
+#include <memory>
+
+#include "rtc_base/constructor_magic.h"
+#include "rtc_base/gtest_prod_util.h"
+#include "rtc_base/memory/aligned_malloc.h"
+#include "rtc_base/system/arch.h"
 
 namespace webrtc {
 
@@ -87,10 +88,8 @@ class SincResampler {
   float* get_kernel_for_testing() { return kernel_storage_.get(); }
 
  private:
-#ifndef WEBRTC_AUDIO_PROCESSING_ONLY_BUILD
   FRIEND_TEST_ALL_PREFIXES(SincResamplerTest, Convolve);
   FRIEND_TEST_ALL_PREFIXES(SincResamplerTest, ConvolveBenchmark);
-#endif
 
   void InitializeKernel();
   void UpdateRegions(bool second_load);
@@ -104,14 +103,22 @@ class SincResampler {
   // Compute convolution of |k1| and |k2| over |input_ptr|, resultant sums are
   // linearly interpolated using |kernel_interpolation_factor|.  On x86 and ARM
   // the underlying implementation is chosen at run time.
-  static float Convolve_C(const float* input_ptr, const float* k1,
-                          const float* k2, double kernel_interpolation_factor);
+  static float Convolve_C(const float* input_ptr,
+                          const float* k1,
+                          const float* k2,
+                          double kernel_interpolation_factor);
 #if defined(WEBRTC_ARCH_X86_FAMILY)
-  static float Convolve_SSE(const float* input_ptr, const float* k1,
+  static float Convolve_SSE(const float* input_ptr,
+                            const float* k1,
                             const float* k2,
                             double kernel_interpolation_factor);
-#elif defined(WEBRTC_DETECT_NEON) || defined(WEBRTC_HAS_NEON)
-  static float Convolve_NEON(const float* input_ptr, const float* k1,
+  static float Convolve_AVX2(const float* input_ptr,
+                             const float* k1,
+                             const float* k2,
+                             double kernel_interpolation_factor);
+#elif defined(WEBRTC_HAS_NEON)
+  static float Convolve_NEON(const float* input_ptr,
+                             const float* k1,
                              const float* k2,
                              double kernel_interpolation_factor);
 #endif
@@ -141,22 +148,22 @@ class SincResampler {
   // Contains kKernelOffsetCount kernels back-to-back, each of size kKernelSize.
   // The kernel offsets are sub-sample shifts of a windowed sinc shifted from
   // 0.0 to 1.0 sample.
-  rtc::scoped_ptr<float[], AlignedFreeDeleter> kernel_storage_;
-  rtc::scoped_ptr<float[], AlignedFreeDeleter> kernel_pre_sinc_storage_;
-  rtc::scoped_ptr<float[], AlignedFreeDeleter> kernel_window_storage_;
+  std::unique_ptr<float[], AlignedFreeDeleter> kernel_storage_;
+  std::unique_ptr<float[], AlignedFreeDeleter> kernel_pre_sinc_storage_;
+  std::unique_ptr<float[], AlignedFreeDeleter> kernel_window_storage_;
 
   // Data from the source is copied into this buffer for each processing pass.
-  rtc::scoped_ptr<float[], AlignedFreeDeleter> input_buffer_;
+  std::unique_ptr<float[], AlignedFreeDeleter> input_buffer_;
 
-  // Stores the runtime selection of which Convolve function to use.
-  // TODO(ajm): Move to using a global static which must only be initialized
-  // once by the user. We're not doing this initially, because we don't have
-  // e.g. a LazyInstance helper in webrtc.
-#if defined(WEBRTC_CPU_DETECTION)
-  typedef float (*ConvolveProc)(const float*, const float*, const float*,
+// Stores the runtime selection of which Convolve function to use.
+// TODO(ajm): Move to using a global static which must only be initialized
+// once by the user. We're not doing this initially, because we don't have
+// e.g. a LazyInstance helper in webrtc.
+  typedef float (*ConvolveProc)(const float*,
+                                const float*,
+                                const float*,
                                 double);
   ConvolveProc convolve_proc_;
-#endif
 
   // Pointers to the various regions inside |input_buffer_|.  See the diagram at
   // the top of the .cc file for more information.
@@ -171,4 +178,4 @@ class SincResampler {
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_
+#endif  // COMMON_AUDIO_RESAMPLER_SINC_RESAMPLER_H_

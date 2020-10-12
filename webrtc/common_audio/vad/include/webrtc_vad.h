@@ -8,17 +8,16 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-
 /*
- * This header file includes the VAD API calls. Specific function calls are given below.
+ * This header file includes the VAD API calls. Specific function calls are
+ * given below.
  */
 
-#ifndef WEBRTC_COMMON_AUDIO_VAD_INCLUDE_WEBRTC_VAD_H_  // NOLINT
-#define WEBRTC_COMMON_AUDIO_VAD_INCLUDE_WEBRTC_VAD_H_
+#ifndef COMMON_AUDIO_VAD_INCLUDE_WEBRTC_VAD_H_  // NOLINT
+#define COMMON_AUDIO_VAD_INCLUDE_WEBRTC_VAD_H_
 
 #include <stddef.h>
-
-#include "webrtc/typedefs.h"
+#include <stdint.h>
 
 typedef struct WebRtcVadInst VadInst;
 
@@ -27,7 +26,7 @@ extern "C" {
 #endif
 
 // Creates an instance to the VAD structure.
-VadInst* WebRtcVad_Create();
+VadInst* WebRtcVad_Create(void);
 
 // Frees the dynamic memory of a specified VAD instance.
 //
@@ -39,7 +38,7 @@ void WebRtcVad_Free(VadInst* handle);
 // - handle [i/o] : Instance that should be initialized.
 //
 // returns        : 0 - (OK),
-//                 -1 - (NULL pointer or Default mode could not be set).
+//                 -1 - (null pointer or Default mode could not be set).
 int WebRtcVad_Init(VadInst* handle);
 
 // Sets the VAD operating mode. A more aggressive (higher mode) VAD is more
@@ -51,7 +50,7 @@ int WebRtcVad_Init(VadInst* handle);
 // - mode   [i]   : Aggressiveness mode (0, 1, 2, or 3).
 //
 // returns        : 0 - (OK),
-//                 -1 - (NULL pointer, mode could not be set or the VAD instance
+//                 -1 - (null pointer, mode could not be set or the VAD instance
 //                       has not been initialized).
 int WebRtcVad_set_mode(VadInst* handle, int mode);
 
@@ -67,7 +66,9 @@ int WebRtcVad_set_mode(VadInst* handle, int mode);
 // returns              : 1 - (Active Voice),
 //                        0 - (Non-active Voice),
 //                       -1 - (Error)
-int WebRtcVad_Process(VadInst* handle, int fs, const int16_t* audio_frame,
+int WebRtcVad_Process(VadInst* handle,
+                      int fs,
+                      const int16_t* audio_frame,
                       size_t frame_length);
 
 // Checks for valid combinations of |rate| and |frame_length|. We support 10,
@@ -83,4 +84,4 @@ int WebRtcVad_ValidRateAndFrameLength(int rate, size_t frame_length);
 }
 #endif
 
-#endif  // WEBRTC_COMMON_AUDIO_VAD_INCLUDE_WEBRTC_VAD_H_  // NOLINT
+#endif  // COMMON_AUDIO_VAD_INCLUDE_WEBRTC_VAD_H_  // NOLINT

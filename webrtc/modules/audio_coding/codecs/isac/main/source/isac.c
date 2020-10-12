@@ -15,22 +15,24 @@
  *
  */
 
-#include "webrtc/modules/audio_coding/codecs/isac/main/include/isac.h"
+#include "modules/audio_coding/codecs/isac/main/include/isac.h"
 
-#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
-#include "webrtc/modules/audio_coding/codecs/isac/main/source/bandwidth_estimator.h"
-#include "webrtc/modules/audio_coding/codecs/isac/main/source/codec.h"
-#include "webrtc/modules/audio_coding/codecs/isac/main/source/crc.h"
-#include "webrtc/modules/audio_coding/codecs/isac/main/source/entropy_coding.h"
-#include "webrtc/modules/audio_coding/codecs/isac/main/source/lpc_shape_swb16_tables.h"
-#include "webrtc/modules/audio_coding/codecs/isac/main/source/os_specific_inline.h"
-#include "webrtc/modules/audio_coding/codecs/isac/main/source/structs.h"
+#include "rtc_base/checks.h"
+#include "common_audio/signal_processing/include/signal_processing_library.h"
+#include "modules/audio_coding/codecs/isac/main/source/bandwidth_estimator.h"
+#include "modules/audio_coding/codecs/isac/main/source/codec.h"
+#include "modules/audio_coding/codecs/isac/main/source/crc.h"
+#include "modules/audio_coding/codecs/isac/main/source/entropy_coding.h"
+#include "modules/audio_coding/codecs/isac/main/source/lpc_shape_swb16_tables.h"
+#include "modules/audio_coding/codecs/isac/main/source/os_specific_inline.h"
+#include "modules/audio_coding/codecs/isac/main/source/structs.h"
+#include "modules/audio_coding/codecs/isac/main/source/isac_vad.h"
+#include "rtc_base/system/arch.h"
 
 #define BIT_MASK_DEC_INIT 0x0001
 #define BIT_MASK_ENC_INIT 0x0002
@@ -200,62 +202,6 @@ static void GetSendBandwidthInfo(ISACMainStruct* instISAC,
     WebRtcIsac_GetDownlinkBwJitIndexImpl(&(instISAC->bwestimator_obj),
                                          bandwidthIndex, jitterInfo,
                                          instISAC->decoderSamplingRateKHz);
-  }
-}
-
-
-/****************************************************************************
- * WebRtcIsac_AssignSize(...)
- *
- * This function returns the size of the ISAC instance, so that the instance
- * can be created out side iSAC.
- *
- * Output:
- *        - sizeinbytes       : number of bytes needed to allocate for the
- *                              instance.
- *
- * Return value               : 0 - Ok
- *                             -1 - Error
- */
-int16_t WebRtcIsac_AssignSize(int* sizeInBytes) {
-  *sizeInBytes = sizeof(ISACMainStruct) * 2 / sizeof(int16_t);
-  return 0;
-}
-
-
-/****************************************************************************
- * WebRtcIsac_Assign(...)
- *
- * This function assigns the memory already created to the ISAC instance.
- *
- * Input:
- *        - ISAC_main_inst    : address of the pointer to the coder instance.
- *        - instISAC_Addr     : the already allocated memory, where we put the
- *                              iSAC structure.
- *
- * Return value               : 0 - Ok
- *                             -1 - Error
- */
-int16_t WebRtcIsac_Assign(ISACStruct** ISAC_main_inst,
-                          void* instISAC_Addr) {
-  if (instISAC_Addr != NULL) {
-    ISACMainStruct* instISAC = (ISACMainStruct*)instISAC_Addr;
-    instISAC->errorCode = 0;
-    instISAC->initFlag = 0;
-
-    /* Assign the address. */
-    *ISAC_main_inst = (ISACStruct*)instISAC_Addr;
-
-    /* Default is wideband. */
-    instISAC->encoderSamplingRateKHz = kIsacWideband;
-    instISAC->decoderSamplingRateKHz = kIsacWideband;
-    instISAC->bandwidthKHz           = isac8kHz;
-    instISAC->in_sample_rate_hz = 16000;
-
-    WebRtcIsac_InitTransform(&instISAC->transform_tables);
-    return 0;
-  } else {
-    return -1;
   }
 }
 
@@ -1253,10 +1199,23 @@ static int Decode(ISACStruct* ISAC_main_inst,
             return -1;
         }
 
+        if (numDecodedBytesUB < 0) {
+          instISAC->errorCode = numDecodedBytesUB;
+          return -1;
+        }
+        if (numDecodedBytesLB + numDecodedBytesUB > lenEncodedBytes) {
+          // We have supposedly decoded more bytes than we were given. Likely
+          // caused by bad input data.
+          instISAC->errorCode = ISAC_LENGTH_MISMATCH;
+          return -1;
+        }
+
         /* It might be less due to garbage. */
         if ((numDecodedBytesUB != lenNextStream) &&
-            (numDecodedBytesUB != (lenNextStream -
-                encoded[numDecodedBytesLB + 1 + numDecodedBytesUB]))) {
+            (numDecodedBytesLB + 1 + numDecodedBytesUB >= lenEncodedBytes ||
+             numDecodedBytesUB !=
+                 (lenNextStream -
+                  encoded[numDecodedBytesLB + 1 + numDecodedBytesUB]))) {
           instISAC->errorCode = ISAC_LENGTH_MISMATCH;
           return -1;
         }
@@ -1539,8 +1498,8 @@ int16_t WebRtcIsac_Control(ISACStruct* ISAC_main_inst,
 void WebRtcIsac_SetInitialBweBottleneck(ISACStruct* ISAC_main_inst,
                                         int bottleneck_bits_per_second) {
   ISACMainStruct* instISAC = (ISACMainStruct*)ISAC_main_inst;
-  assert(bottleneck_bits_per_second >= 10000 &&
-         bottleneck_bits_per_second <= 32000);
+  RTC_DCHECK_GE(bottleneck_bits_per_second, 10000);
+  RTC_DCHECK_LE(bottleneck_bits_per_second, 32000);
   instISAC->bwestimator_obj.send_bw_avg = (float)bottleneck_bits_per_second;
 }
 
@@ -1760,7 +1719,7 @@ int16_t WebRtcIsac_ReadBwIndex(const uint8_t* encoded,
  *        - frameLength       : Length of frame in packet (in samples)
  *
  */
-int16_t WebRtcIsac_ReadFrameLen(ISACStruct* ISAC_main_inst,
+int16_t WebRtcIsac_ReadFrameLen(const ISACStruct* ISAC_main_inst,
                                 const uint8_t* encoded,
                                 int16_t* frameLength) {
   Bitstr streamdata;
@@ -2338,26 +2297,11 @@ uint16_t WebRtcIsac_DecSampRate(ISACStruct* ISAC_main_inst) {
   return instISAC->decoderSamplingRateKHz == kIsacWideband ? 16000 : 32000;
 }
 
-void WebRtcIsac_GetBandwidthInfo(ISACStruct* inst,
-                                 IsacBandwidthInfo* bwinfo) {
-  ISACMainStruct* instISAC = (ISACMainStruct*)inst;
-  assert(instISAC->initFlag & BIT_MASK_DEC_INIT);
-  WebRtcIsacBw_GetBandwidthInfo(&instISAC->bwestimator_obj,
-                                instISAC->decoderSamplingRateKHz, bwinfo);
-}
-
-void WebRtcIsac_SetBandwidthInfo(ISACStruct* inst,
-                                 const IsacBandwidthInfo* bwinfo) {
-  ISACMainStruct* instISAC = (ISACMainStruct*)inst;
-  assert(instISAC->initFlag & BIT_MASK_ENC_INIT);
-  WebRtcIsacBw_SetBandwidthInfo(&instISAC->bwestimator_obj, bwinfo);
-}
-
 void WebRtcIsac_SetEncSampRateInDecoder(ISACStruct* inst,
                                         int sample_rate_hz) {
   ISACMainStruct* instISAC = (ISACMainStruct*)inst;
-  assert(instISAC->initFlag & BIT_MASK_DEC_INIT);
-  assert(!(instISAC->initFlag & BIT_MASK_ENC_INIT));
-  assert(sample_rate_hz == 16000 || sample_rate_hz == 32000);
+  RTC_DCHECK_NE(0, instISAC->initFlag & BIT_MASK_DEC_INIT);
+  RTC_DCHECK(!(instISAC->initFlag & BIT_MASK_ENC_INIT));
+  RTC_DCHECK(sample_rate_hz == 16000 || sample_rate_hz == 32000);
   instISAC->encoderSamplingRateKHz = sample_rate_hz / 1000;
 }

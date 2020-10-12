@@ -8,9 +8,11 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/modules/audio_processing/vad/pitch_internal.h"
+#include "modules/audio_processing/vad/pitch_internal.h"
 
 #include <cmath>
+
+namespace webrtc {
 
 // A 4-to-3 linear interpolation.
 // The interpolation constants are derived as following:
@@ -49,3 +51,5 @@ void GetSubframesPitchParameters(int sampling_rate_hz,
     pitch_lag_hz[n] = (sampling_rate_hz) / (pitch_lag_hz[n]);
   }
 }
+
+}  // namespace webrtc

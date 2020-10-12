@@ -8,25 +8,20 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/common_audio/real_fourier.h"
+#include "common_audio/real_fourier.h"
 
-#include "webrtc/base/checks.h"
-#include "webrtc/common_audio/real_fourier_ooura.h"
-#include "webrtc/common_audio/real_fourier_openmax.h"
-#include "webrtc/common_audio/signal_processing/include/spl_inl.h"
+#include "common_audio/real_fourier_ooura.h"
+#include "common_audio/signal_processing/include/signal_processing_library.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 
 using std::complex;
 
-const int RealFourier::kFftBufferAlignment = 32;
+const size_t RealFourier::kFftBufferAlignment = 32;
 
-rtc::scoped_ptr<RealFourier> RealFourier::Create(int fft_order) {
-#if defined(RTC_USE_OPENMAX_DL)
-  return rtc::scoped_ptr<RealFourier>(new RealFourierOpenmax(fft_order));
-#else
-  return rtc::scoped_ptr<RealFourier>(new RealFourierOoura(fft_order));
-#endif
+std::unique_ptr<RealFourier> RealFourier::Create(int fft_order) {
+  return std::unique_ptr<RealFourier>(new RealFourierOoura(fft_order));
 }
 
 int RealFourier::FftOrder(size_t length) {
@@ -36,7 +31,7 @@ int RealFourier::FftOrder(size_t length) {
 
 size_t RealFourier::FftLength(int order) {
   RTC_CHECK_GE(order, 0);
-  return static_cast<size_t>(1 << order);
+  return size_t{1} << order;
 }
 
 size_t RealFourier::ComplexLength(int order) {
@@ -54,4 +49,3 @@ RealFourier::fft_cplx_scoper RealFourier::AllocCplxBuffer(int count) {
 }
 
 }  // namespace webrtc
-

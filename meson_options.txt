@@ -1,6 +1,3 @@
-option('ns_mode', type: 'combo',
-       choices : ['float', 'fixed'],
-       description: 'Noise suppresion mode to use.')
 option('gnustl', type: 'feature',
        value: 'auto',
        description: 'Use gnustl for a c++ library implementation (only used on Android)')

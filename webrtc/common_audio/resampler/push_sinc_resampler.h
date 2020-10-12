@@ -8,13 +8,16 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_COMMON_AUDIO_RESAMPLER_PUSH_SINC_RESAMPLER_H_
-#define WEBRTC_COMMON_AUDIO_RESAMPLER_PUSH_SINC_RESAMPLER_H_
+#ifndef COMMON_AUDIO_RESAMPLER_PUSH_SINC_RESAMPLER_H_
+#define COMMON_AUDIO_RESAMPLER_PUSH_SINC_RESAMPLER_H_
 
-#include "webrtc/base/constructormagic.h"
-#include "webrtc/base/scoped_ptr.h"
-#include "webrtc/common_audio/resampler/sinc_resampler.h"
-#include "webrtc/typedefs.h"
+#include <stddef.h>
+#include <stdint.h>
+
+#include <memory>
+
+#include "common_audio/resampler/sinc_resampler.h"
+#include "rtc_base/constructor_magic.h"
 
 namespace webrtc {
 
@@ -35,8 +38,10 @@ class PushSincResampler : public SincResamplerCallback {
   // at least as large as |destination_frames|. Returns the number of samples
   // provided in destination (for convenience, since this will always be equal
   // to |destination_frames|).
-  size_t Resample(const int16_t* source, size_t source_frames,
-                  int16_t* destination, size_t destination_capacity);
+  size_t Resample(const int16_t* source,
+                  size_t source_frames,
+                  int16_t* destination,
+                  size_t destination_capacity);
   size_t Resample(const float* source,
                   size_t source_frames,
                   float* destination,
@@ -56,8 +61,8 @@ class PushSincResampler : public SincResamplerCallback {
   friend class PushSincResamplerTest;
   SincResampler* get_resampler_for_testing() { return resampler_.get(); }
 
-  rtc::scoped_ptr<SincResampler> resampler_;
-  rtc::scoped_ptr<float[]> float_buffer_;
+  std::unique_ptr<SincResampler> resampler_;
+  std::unique_ptr<float[]> float_buffer_;
   const float* source_ptr_;
   const int16_t* source_ptr_int_;
   const size_t destination_frames_;
@@ -73,4 +78,4 @@ class PushSincResampler : public SincResamplerCallback {
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_COMMON_AUDIO_RESAMPLER_PUSH_SINC_RESAMPLER_H_
+#endif  // COMMON_AUDIO_RESAMPLER_PUSH_SINC_RESAMPLER_H_

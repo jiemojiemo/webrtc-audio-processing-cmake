@@ -8,9 +8,11 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "webrtc/modules/audio_processing/agc/utility.h"
+#include "modules/audio_processing/agc/utility.h"
 
 #include <math.h>
+
+namespace webrtc {
 
 static const double kLog10 = 2.30258509299;
 static const double kLinear2DbScale = 20.0 / kLog10;
@@ -33,3 +35,5 @@ double Db2Loudness(double db) {
 double Dbfs2Loudness(double dbfs) {
   return Db2Loudness(90 + dbfs);
 }
+
+}  // namespace webrtc

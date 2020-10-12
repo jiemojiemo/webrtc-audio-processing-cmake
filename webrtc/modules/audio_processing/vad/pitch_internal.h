@@ -8,8 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_VAD_PITCH_INTERNAL_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_VAD_PITCH_INTERNAL_H_
+#ifndef MODULES_AUDIO_PROCESSING_VAD_PITCH_INTERNAL_H_
+#define MODULES_AUDIO_PROCESSING_VAD_PITCH_INTERNAL_H_
+
+namespace webrtc {
 
 // TODO(turajs): Write a description of this function. Also be consistent with
 // usage of |sampling_rate_hz| vs |kSamplingFreqHz|.
@@ -23,4 +25,6 @@ void GetSubframesPitchParameters(int sampling_rate_hz,
                                  double* log_pitch_gain,
                                  double* pitch_lag_hz);
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_VAD_PITCH_INTERNAL_H_
+}  // namespace webrtc
+
+#endif  // MODULES_AUDIO_PROCESSING_VAD_PITCH_INTERNAL_H_

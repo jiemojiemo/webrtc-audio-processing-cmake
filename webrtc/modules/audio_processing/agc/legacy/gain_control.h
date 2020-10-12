@@ -8,46 +8,39 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_AUDIO_PROCESSING_AGC_LEGACY_GAIN_CONTROL_H_
-#define WEBRTC_MODULES_AUDIO_PROCESSING_AGC_LEGACY_GAIN_CONTROL_H_
+#ifndef MODULES_AUDIO_PROCESSING_AGC_LEGACY_GAIN_CONTROL_H_
+#define MODULES_AUDIO_PROCESSING_AGC_LEGACY_GAIN_CONTROL_H_
 
-#include "webrtc/typedefs.h"
+namespace webrtc {
 
-// Errors
-#define AGC_UNSPECIFIED_ERROR           18000
-#define AGC_UNSUPPORTED_FUNCTION_ERROR  18001
-#define AGC_UNINITIALIZED_ERROR         18002
-#define AGC_NULL_POINTER_ERROR          18003
-#define AGC_BAD_PARAMETER_ERROR         18004
-
-// Warnings
-#define AGC_BAD_PARAMETER_WARNING       18050
-
-enum
-{
-    kAgcModeUnchanged,
-    kAgcModeAdaptiveAnalog,
-    kAgcModeAdaptiveDigital,
-    kAgcModeFixedDigital
+enum {
+  kAgcModeUnchanged,
+  kAgcModeAdaptiveAnalog,
+  kAgcModeAdaptiveDigital,
+  kAgcModeFixedDigital
 };
 
-enum
-{
-    kAgcFalse = 0,
-    kAgcTrue
-};
+enum { kAgcFalse = 0, kAgcTrue };
 
-typedef struct
-{
-    int16_t targetLevelDbfs;   // default 3 (-3 dBOv)
-    int16_t compressionGaindB; // default 9 dB
-    uint8_t limiterEnable;     // default kAgcTrue (on)
+typedef struct {
+  int16_t targetLevelDbfs;    // default 3 (-3 dBOv)
+  int16_t compressionGaindB;  // default 9 dB
+  uint8_t limiterEnable;      // default kAgcTrue (on)
 } WebRtcAgcConfig;
 
-#if defined(__cplusplus)
-extern "C"
-{
-#endif
+/*
+ * This function analyses the number of samples passed to
+ * farend and produces any error code that could arise.
+ *
+ * Input:
+ *      - agcInst           : AGC instance.
+ *      - samples           : Number of samples in input vector.
+ *
+ * Return value:
+ *                          :  0 - Normal operation.
+ *                          : -1 - Error.
+ */
+int WebRtcAgc_GetAddFarendError(void* state, size_t samples);
 
 /*
  * This function processes a 10 ms frame of far-end speech to determine
@@ -64,9 +57,7 @@ extern "C"
  *                          :  0 - Normal operation.
  *                          : -1 - Error
  */
-int WebRtcAgc_AddFarend(void* agcInst,
-                        const int16_t* inFar,
-                        size_t samples);
+int WebRtcAgc_AddFarend(void* agcInst, const int16_t* inFar, size_t samples);
 
 /*
  * This function processes a 10 ms frame of microphone speech to determine
@@ -124,12 +115,12 @@ int WebRtcAgc_VirtualMic(void* agcInst,
                          int32_t* micLevelOut);
 
 /*
- * This function processes a 10 ms frame and adjusts (normalizes) the gain both
- * analog and digitally. The gain adjustments are done only during active
- * periods of speech. The length of the speech vectors must be given in samples
- * (80 when FS=8000, and 160 when FS=16000, FS=32000 or FS=48000). The echo
- * parameter can be used to ensure the AGC will not adjust upward in the
- * presence of echo.
+ * This function analyses a 10 ms frame and produces the analog and digital
+ * gains required to normalize the signal. The gain adjustments are done only
+ * during active periods of speech. The length of the speech vectors must be
+ * given in samples (80 when FS=8000, and 160 when FS=16000, FS=32000 or
+ * FS=48000). The echo parameter can be used to ensure the AGC will not adjust
+ * upward in the presence of echo.
  *
  * This function should be called after processing the near-end microphone
  * signal, in any case after any echo cancellation.
@@ -147,25 +138,47 @@ int WebRtcAgc_VirtualMic(void* agcInst,
  *
  * Output:
  *      - outMicLevel       : Adjusted microphone volume level
- *      - out               : Gain-adjusted near-end speech vector
- *                          : May be the same vector as the input.
  *      - saturationWarning : A returned value of 1 indicates a saturation event
  *                            has occurred and the volume cannot be further
  *                            reduced. Otherwise will be set to 0.
+ *      - gains             : Vector of gains to apply for digital normalization
  *
  * Return value:
  *                          :  0 - Normal operation.
  *                          : -1 - Error
  */
-int WebRtcAgc_Process(void* agcInst,
+int WebRtcAgc_Analyze(void* agcInst,
                       const int16_t* const* inNear,
                       size_t num_bands,
                       size_t samples,
-                      int16_t* const* out,
                       int32_t inMicLevel,
                       int32_t* outMicLevel,
                       int16_t echo,
-                      uint8_t* saturationWarning);
+                      uint8_t* saturationWarning,
+                      int32_t gains[11]);
+
+/*
+ * This function processes a 10 ms frame by applying precomputed digital gains.
+ *
+ * Input:
+ *      - agcInst           : AGC instance
+ *      - gains             : Vector of gains to apply for digital normalization
+ *      - in_near           : Near-end input speech vector for each band
+ *      - num_bands         : Number of bands in input/output vector
+ *
+ * Output:
+ *      - out               : Gain-adjusted near-end speech vector
+ *                          : May be the same vector as the input.
+ *
+ * Return value:
+ *                          :  0 - Normal operation.
+ *                          : -1 - Error
+ */
+int WebRtcAgc_Process(const void* agcInst,
+                      const int32_t gains[11],
+                      const int16_t* const* in_near,
+                      size_t num_bands,
+                      int16_t* const* out);
 
 /*
  * This function sets the config parameters (targetLevelDbfs,
@@ -203,7 +216,7 @@ int WebRtcAgc_get_config(void* agcInst, WebRtcAgcConfig* config);
  * This function creates and returns an AGC instance, which will contain the
  * state information for one (duplex) channel.
  */
-void* WebRtcAgc_Create();
+void* WebRtcAgc_Create(void);
 
 /*
  * This function frees the AGC instance created at the beginning.
@@ -229,14 +242,12 @@ void WebRtcAgc_Free(void* agcInst);
  * Return value             :  0 - Ok
  *                            -1 - Error
  */
-int WebRtcAgc_Init(void *agcInst,
+int WebRtcAgc_Init(void* agcInst,
                    int32_t minLevel,
                    int32_t maxLevel,
                    int16_t agcMode,
                    uint32_t fs);
 
-#if defined(__cplusplus)
-}
-#endif
+}  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_AUDIO_PROCESSING_AGC_LEGACY_GAIN_CONTROL_H_
+#endif  // MODULES_AUDIO_PROCESSING_AGC_LEGACY_GAIN_CONTROL_H_

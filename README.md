@@ -2,7 +2,7 @@ About
 =====
 
 This is meant to be a more Linux packaging friendly copy of the AudioProcessing
-module from the WebRTC[1][2] project. The ideal case is that we make no changes to
+module from the WebRTC[1] project. The ideal case is that we make no changes to
 the code to make tracking upstream code easy.
 
 This package currently only includes the AudioProcessing bits, but I am very
@@ -11,18 +11,17 @@ the code and hopefully eventually have a single point of packaging all the
 WebRTC code to help people reuse the code and avoid keeping private copies in
 several different projects.
 
-[1] http://code.google.com/p/webrtc/
-[2] https://chromium.googlesource.com/external/webrtc/trunk/webrtc.git
+[1] https://webrtc.googlesource.com/src
 
 Feedback
 ========
 
 Patches, suggestions welcome. You can send them to the PulseAudio mailing
-list[3] or to me at the address below.
+list[2] or to me at the address below.
 
 -- Arun Raghavan <mail@arunraghavan.net>
 
-[3] http://lists.freedesktop.org/mailman/listinfo/pulseaudio-discuss
+[2] http://lists.freedesktop.org/mailman/listinfo/pulseaudio-discuss
 
 Notes
 ====

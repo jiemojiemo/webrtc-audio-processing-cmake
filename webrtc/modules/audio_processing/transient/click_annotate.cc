@@ -11,14 +11,13 @@
 #include <cfloat>
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 #include <vector>
 
-#include "webrtc/modules/audio_processing/transient/transient_detector.h"
-#include "webrtc/modules/audio_processing/transient/file_utils.h"
-#include "webrtc/base/scoped_ptr.h"
-#include "webrtc/system_wrappers/include/file_wrapper.h"
+#include "modules/audio_processing/transient/file_utils.h"
+#include "modules/audio_processing/transient/transient_detector.h"
+#include "rtc_base/system/file_wrapper.h"
 
-using rtc::scoped_ptr;
 using webrtc::FileWrapper;
 using webrtc::TransientDetector;
 
@@ -40,16 +39,14 @@ int main(int argc, char* argv[]) {
     return 0;
   }
 
-  scoped_ptr<FileWrapper> pcm_file(FileWrapper::Create());
-  pcm_file->OpenFile(argv[1], true, false, false);
-  if (!pcm_file->Open()) {
+  FileWrapper pcm_file = FileWrapper::OpenReadOnly(argv[1]);
+  if (!pcm_file.is_open()) {
     printf("\nThe %s could not be opened.\n\n", argv[1]);
     return -1;
   }
 
-  scoped_ptr<FileWrapper> dat_file(FileWrapper::Create());
-  dat_file->OpenFile(argv[2], false, false, false);
-  if (!dat_file->Open()) {
+  FileWrapper dat_file = FileWrapper::OpenWriteOnly(argv[2]);
+  if (!dat_file.is_open()) {
     printf("\nThe %s could not be opened.\n\n", argv[2]);
     return -1;
   }
@@ -69,14 +66,12 @@ int main(int argc, char* argv[]) {
   TransientDetector detector(sample_rate_hz);
   int lost_packets = 0;
   size_t audio_buffer_length = chunk_size_ms * sample_rate_hz / 1000;
-  scoped_ptr<float[]> audio_buffer(new float[audio_buffer_length]);
+  std::unique_ptr<float[]> audio_buffer(new float[audio_buffer_length]);
   std::vector<float> send_times;
 
   // Read first buffer from the PCM test file.
   size_t file_samples_read = ReadInt16FromFileToFloatBuffer(
-      pcm_file.get(),
-      audio_buffer_length,
-      audio_buffer.get());
+      &pcm_file, audio_buffer_length, audio_buffer.get());
   for (int time = 0; file_samples_read > 0; time += chunk_size_ms) {
     // Pad the rest of the buffer with zeros.
     for (size_t i = file_samples_read; i < audio_buffer_length; ++i) {
@@ -93,22 +88,20 @@ int main(int argc, char* argv[]) {
     send_times.push_back(value);
 
     // Read next buffer from the PCM test file.
-    file_samples_read = ReadInt16FromFileToFloatBuffer(pcm_file.get(),
-                                                       audio_buffer_length,
-                                                       audio_buffer.get());
+    file_samples_read = ReadInt16FromFileToFloatBuffer(
+        &pcm_file, audio_buffer_length, audio_buffer.get());
   }
 
-  size_t floats_written = WriteFloatBufferToFile(dat_file.get(),
-                                                 send_times.size(),
-                                                 &send_times[0]);
+  size_t floats_written =
+      WriteFloatBufferToFile(&dat_file, send_times.size(), &send_times[0]);
 
   if (floats_written == 0) {
     printf("\nThe send times could not be written to DAT file\n\n");
     return -1;
   }
 
-  pcm_file->CloseFile();
-  dat_file->CloseFile();
+  pcm_file.Close();
+  dat_file.Close();
 
   return lost_packets;
 }

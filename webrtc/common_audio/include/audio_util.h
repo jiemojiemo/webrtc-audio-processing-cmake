@@ -8,15 +8,17 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_COMMON_AUDIO_INCLUDE_AUDIO_UTIL_H_
-#define WEBRTC_COMMON_AUDIO_INCLUDE_AUDIO_UTIL_H_
+#ifndef COMMON_AUDIO_INCLUDE_AUDIO_UTIL_H_
+#define COMMON_AUDIO_INCLUDE_AUDIO_UTIL_H_
 
-#include <limits>
+#include <stdint.h>
+
+#include <algorithm>
+#include <cmath>
 #include <cstring>
+#include <limits>
 
-#include "webrtc/base/checks.h"
-#include "webrtc/base/scoped_ptr.h"
-#include "webrtc/typedefs.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 
@@ -25,45 +27,69 @@ typedef std::numeric_limits<int16_t> limits_int16;
 // The conversion functions use the following naming convention:
 // S16:      int16_t [-32768, 32767]
 // Float:    float   [-1.0, 1.0]
-// FloatS16: float   [-32768.0, 32767.0]
-static inline int16_t FloatToS16(float v) {
-  if (v > 0)
-    return v >= 1 ? limits_int16::max()
-                  : static_cast<int16_t>(v * limits_int16::max() + 0.5f);
-  return v <= -1 ? limits_int16::min()
-                 : static_cast<int16_t>(-v * limits_int16::min() - 0.5f);
-}
-
+// FloatS16: float   [-32768.0, 32768.0]
+// Dbfs: float [-20.0*log(10, 32768), 0] = [-90.3, 0]
+// The ratio conversion functions use this naming convention:
+// Ratio: float (0, +inf)
+// Db: float (-inf, +inf)
 static inline float S16ToFloat(int16_t v) {
-  static const float kMaxInt16Inverse = 1.f / limits_int16::max();
-  static const float kMinInt16Inverse = 1.f / limits_int16::min();
-  return v * (v > 0 ? kMaxInt16Inverse : -kMinInt16Inverse);
+  constexpr float kScaling = 1.f / 32768.f;
+  return v * kScaling;
 }
 
 static inline int16_t FloatS16ToS16(float v) {
-  static const float kMaxRound = limits_int16::max() - 0.5f;
-  static const float kMinRound = limits_int16::min() + 0.5f;
-  if (v > 0)
-    return v >= kMaxRound ? limits_int16::max()
-                          : static_cast<int16_t>(v + 0.5f);
-  return v <= kMinRound ? limits_int16::min() : static_cast<int16_t>(v - 0.5f);
+  v = std::min(v, 32767.f);
+  v = std::max(v, -32768.f);
+  return static_cast<int16_t>(v + std::copysign(0.5f, v));
+}
+
+static inline int16_t FloatToS16(float v) {
+  v *= 32768.f;
+  v = std::min(v, 32767.f);
+  v = std::max(v, -32768.f);
+  return static_cast<int16_t>(v + std::copysign(0.5f, v));
 }
 
 static inline float FloatToFloatS16(float v) {
-  return v * (v > 0 ? limits_int16::max() : -limits_int16::min());
+  v = std::min(v, 1.f);
+  v = std::max(v, -1.f);
+  return v * 32768.f;
 }
 
 static inline float FloatS16ToFloat(float v) {
-  static const float kMaxInt16Inverse = 1.f / limits_int16::max();
-  static const float kMinInt16Inverse = 1.f / limits_int16::min();
-  return v * (v > 0 ? kMaxInt16Inverse : -kMinInt16Inverse);
+  v = std::min(v, 32768.f);
+  v = std::max(v, -32768.f);
+  constexpr float kScaling = 1.f / 32768.f;
+  return v * kScaling;
 }
 
 void FloatToS16(const float* src, size_t size, int16_t* dest);
 void S16ToFloat(const int16_t* src, size_t size, float* dest);
+void S16ToFloatS16(const int16_t* src, size_t size, float* dest);
 void FloatS16ToS16(const float* src, size_t size, int16_t* dest);
 void FloatToFloatS16(const float* src, size_t size, float* dest);
 void FloatS16ToFloat(const float* src, size_t size, float* dest);
+
+inline float DbToRatio(float v) {
+  return std::pow(10.0f, v / 20.0f);
+}
+
+inline float DbfsToFloatS16(float v) {
+  static constexpr float kMaximumAbsFloatS16 = -limits_int16::min();
+  return DbToRatio(v) * kMaximumAbsFloatS16;
+}
+
+inline float FloatS16ToDbfs(float v) {
+  RTC_DCHECK_GE(v, 0);
+
+  // kMinDbfs is equal to -20.0 * log10(-limits_int16::min())
+  static constexpr float kMinDbfs = -90.30899869919436f;
+  if (v <= 1.0f) {
+    return kMinDbfs;
+  }
+  // Equal to 20 * log10(v / (-limits_int16::min()))
+  return 20.0f * std::log10(v) + kMinDbfs;
+}
 
 // Copy audio from |src| channels to |dest| channels unless |src| and |dest|
 // point to the same address. |src| and |dest| must have the same number of
@@ -87,11 +113,11 @@ void CopyAudioIfNeeded(const T* const* src,
 template <typename T>
 void Deinterleave(const T* interleaved,
                   size_t samples_per_channel,
-                  int num_channels,
+                  size_t num_channels,
                   T* const* deinterleaved) {
-  for (int i = 0; i < num_channels; ++i) {
+  for (size_t i = 0; i < num_channels; ++i) {
     T* channel = deinterleaved[i];
-    int interleaved_idx = i;
+    size_t interleaved_idx = i;
     for (size_t j = 0; j < samples_per_channel; ++j) {
       channel[j] = interleaved[interleaved_idx];
       interleaved_idx += num_channels;
@@ -105,11 +131,11 @@ void Deinterleave(const T* interleaved,
 template <typename T>
 void Interleave(const T* const* deinterleaved,
                 size_t samples_per_channel,
-                int num_channels,
+                size_t num_channels,
                 T* interleaved) {
-  for (int i = 0; i < num_channels; ++i) {
+  for (size_t i = 0; i < num_channels; ++i) {
     const T* channel = deinterleaved[i];
-    int interleaved_idx = i;
+    size_t interleaved_idx = i;
     for (size_t j = 0; j < samples_per_channel; ++j) {
       interleaved[interleaved_idx] = channel[j];
       interleaved_idx += num_channels;
@@ -155,7 +181,7 @@ void DownmixInterleavedToMonoImpl(const T* interleaved,
                                   int num_channels,
                                   T* deinterleaved) {
   RTC_DCHECK_GT(num_channels, 0);
-  RTC_DCHECK_GT(num_frames, 0u);
+  RTC_DCHECK_GT(num_frames, 0);
 
   const T* const end = interleaved + num_frames * num_channels;
 
@@ -185,4 +211,4 @@ void DownmixInterleavedToMono<int16_t>(const int16_t* interleaved,
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_COMMON_AUDIO_INCLUDE_AUDIO_UTIL_H_
+#endif  // COMMON_AUDIO_INCLUDE_AUDIO_UTIL_H_

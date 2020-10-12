@@ -8,26 +8,24 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_COMMON_AUDIO_WINDOW_GENERATOR_H_
-#define WEBRTC_COMMON_AUDIO_WINDOW_GENERATOR_H_
+#ifndef COMMON_AUDIO_WINDOW_GENERATOR_H_
+#define COMMON_AUDIO_WINDOW_GENERATOR_H_
 
 #include <stddef.h>
-
-#include "webrtc/base/constructormagic.h"
 
 namespace webrtc {
 
 // Helper class with generators for various signal transform windows.
 class WindowGenerator {
  public:
+  WindowGenerator() = delete;
+  WindowGenerator(const WindowGenerator&) = delete;
+  WindowGenerator& operator=(const WindowGenerator&) = delete;
+
   static void Hanning(int length, float* window);
   static void KaiserBesselDerived(float alpha, size_t length, float* window);
-
- private:
-  RTC_DISALLOW_IMPLICIT_CONSTRUCTORS(WindowGenerator);
 };
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_COMMON_AUDIO_WINDOW_GENERATOR_H_
-
+#endif  // COMMON_AUDIO_WINDOW_GENERATOR_H_

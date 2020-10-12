@@ -15,7 +15,9 @@
  *
  */
 
-#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "common_audio/signal_processing/include/signal_processing_library.h"
+
+#include "rtc_base/checks.h"
 
 size_t WebRtcSpl_FilterAR(const int16_t* a,
                           size_t a_length,
@@ -29,7 +31,7 @@ size_t WebRtcSpl_FilterAR(const int16_t* a,
                           int16_t* filtered_low,
                           size_t filtered_low_length)
 {
-    int32_t o;
+    int64_t o;
     int32_t oLOW;
     size_t i, j, stop;
     const int16_t* x_ptr = &x[0];
@@ -40,19 +42,23 @@ size_t WebRtcSpl_FilterAR(const int16_t* a,
     {
         // Calculate filtered[i] and filtered_low[i]
         const int16_t* a_ptr = &a[1];
-        int16_t* filtered_ptr = &filtered[i - 1];
-        int16_t* filtered_low_ptr = &filtered_low[i - 1];
+        // The index can become negative, but the arrays will never be indexed
+        // with it when negative. Nevertheless, the index cannot be a size_t
+        // because of this.
+        int filtered_ix = (int)i - 1;
         int16_t* state_ptr = &state[state_length - 1];
         int16_t* state_low_ptr = &state_low[state_length - 1];
 
-        o = (int32_t)(*x_ptr++) << 12;
+        o = (int32_t)(*x_ptr++) * (1 << 12);
         oLOW = (int32_t)0;
 
         stop = (i < a_length) ? i + 1 : a_length;
         for (j = 1; j < stop; j++)
         {
-          o -= *a_ptr * *filtered_ptr--;
-          oLOW -= *a_ptr++ * *filtered_low_ptr--;
+          RTC_DCHECK_GE(filtered_ix, 0);
+          o -= *a_ptr * filtered[filtered_ix];
+          oLOW -= *a_ptr++ * filtered_low[filtered_ix];
+          --filtered_ix;
         }
         for (j = i + 1; j < a_length; j++)
         {
@@ -62,8 +68,8 @@ size_t WebRtcSpl_FilterAR(const int16_t* a,
 
         o += (oLOW >> 12);
         *filteredFINAL_ptr = (int16_t)((o + (int32_t)2048) >> 12);
-        *filteredFINAL_LOW_ptr++ = (int16_t)(o - ((int32_t)(*filteredFINAL_ptr++)
-                << 12));
+        *filteredFINAL_LOW_ptr++ =
+            (int16_t)(o - ((int32_t)(*filteredFINAL_ptr++) * (1 << 12)));
     }
 
     // Save the filter state
@@ -81,7 +87,7 @@ size_t WebRtcSpl_FilterAR(const int16_t* a,
         for (i = 0; i < x_length; i++)
         {
             state[state_length - x_length + i] = filtered[i];
-            state[state_length - x_length + i] = filtered_low[i];
+            state_low[state_length - x_length + i] = filtered_low[i];
         }
     }
 

@@ -19,7 +19,7 @@
  *
  */
 
-#include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "common_audio/signal_processing/include/signal_processing_library.h"
 
 void WebRtcSpl_ReverseOrderMultArrayElements(int16_t *out, const int16_t *in,
                                              const int16_t *win,
@@ -64,7 +64,7 @@ void WebRtcSpl_AddVectorsAndShift(int16_t *out, const int16_t *in1,
     }
 }
 
-void WebRtcSpl_AddAffineVectorToVector(int16_t *out, int16_t *in,
+void WebRtcSpl_AddAffineVectorToVector(int16_t *out, const int16_t *in,
                                        int16_t gain, int32_t add_constant,
                                        int16_t right_shifts,
                                        size_t vector_length)
@@ -77,7 +77,7 @@ void WebRtcSpl_AddAffineVectorToVector(int16_t *out, int16_t *in,
     }
 }
 
-void WebRtcSpl_AffineTransformVector(int16_t *out, int16_t *in,
+void WebRtcSpl_AffineTransformVector(int16_t *out, const int16_t *in,
                                      int16_t gain, int32_t add_constant,
                                      int16_t right_shifts, size_t vector_length)
 {

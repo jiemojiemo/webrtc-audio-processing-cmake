@@ -85,16 +85,17 @@
 // MSVC++ requires this to be set before any other includes to get M_PI.
 #define _USE_MATH_DEFINES
 
-#include "webrtc/common_audio/resampler/sinc_resampler.h"
+#include "common_audio/resampler/sinc_resampler.h"
 
-#include <assert.h>
 #include <math.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <limits>
 
-#include "webrtc/system_wrappers/include/cpu_features_wrapper.h"
-#include "webrtc/typedefs.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/system/arch.h"
+#include "system_wrappers/include/cpu_features_wrapper.h"  // kSSE2, WebRtc_G...
 
 namespace webrtc {
 
@@ -118,35 +119,25 @@ double SincScaleFactor(double io_ratio) {
 
 }  // namespace
 
-// If we know the minimum architecture at compile time, avoid CPU detection.
-#if defined(WEBRTC_ARCH_X86_FAMILY)
-#if defined(__SSE2__)
-#define CONVOLVE_FUNC Convolve_SSE
-void SincResampler::InitializeCPUSpecificFeatures() {}
-#else
-// x86 CPU detection required.  Function will be set by
-// InitializeCPUSpecificFeatures().
-// TODO(dalecurtis): Once Chrome moves to an SSE baseline this can be removed.
-#define CONVOLVE_FUNC convolve_proc_
+const size_t SincResampler::kKernelSize;
 
+// If we know the minimum architecture at compile time, avoid CPU detection.
 void SincResampler::InitializeCPUSpecificFeatures() {
-  convolve_proc_ = WebRtc_GetCPUInfo(kSSE2) ? Convolve_SSE : Convolve_C;
-}
-#endif
-#elif defined(WEBRTC_HAS_NEON)
-#define CONVOLVE_FUNC Convolve_NEON
-void SincResampler::InitializeCPUSpecificFeatures() {}
-#elif defined(WEBRTC_DETECT_NEON)
-#define CONVOLVE_FUNC convolve_proc_
-void SincResampler::InitializeCPUSpecificFeatures() {
-  convolve_proc_ = WebRtc_GetCPUFeaturesARM() & kCPUFeatureNEON ?
-      Convolve_NEON : Convolve_C;
-}
+#if defined(WEBRTC_HAS_NEON)
+  convolve_proc_ = Convolve_NEON;
+#elif defined(WEBRTC_ARCH_X86_FAMILY)
+  // Using AVX2 instead of SSE2 when AVX2 supported.
+  if (GetCPUInfo(kAVX2))
+    convolve_proc_ = Convolve_AVX2;
+  else if (GetCPUInfo(kSSE2))
+    convolve_proc_ = Convolve_SSE;
+  else
+    convolve_proc_ = Convolve_C;
 #else
-// Unknown architecture.
-#define CONVOLVE_FUNC Convolve_C
-void SincResampler::InitializeCPUSpecificFeatures() {}
+  // Unknown architecture.
+  convolve_proc_ = Convolve_C;
 #endif
+}
 
 SincResampler::SincResampler(double io_sample_rate_ratio,
                              size_t request_frames,
@@ -155,27 +146,23 @@ SincResampler::SincResampler(double io_sample_rate_ratio,
       read_cb_(read_cb),
       request_frames_(request_frames),
       input_buffer_size_(request_frames_ + kKernelSize),
-      // Create input buffers with a 16-byte alignment for SSE optimizations.
+      // Create input buffers with a 32-byte alignment for SIMD optimizations.
       kernel_storage_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
+          AlignedMalloc(sizeof(float) * kKernelStorageSize, 32))),
       kernel_pre_sinc_storage_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
+          AlignedMalloc(sizeof(float) * kKernelStorageSize, 32))),
       kernel_window_storage_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * kKernelStorageSize, 16))),
+          AlignedMalloc(sizeof(float) * kKernelStorageSize, 32))),
       input_buffer_(static_cast<float*>(
-          AlignedMalloc(sizeof(float) * input_buffer_size_, 16))),
-#if defined(WEBRTC_CPU_DETECTION)
-      convolve_proc_(NULL),
-#endif
+          AlignedMalloc(sizeof(float) * input_buffer_size_, 32))),
+      convolve_proc_(nullptr),
       r1_(input_buffer_.get()),
       r2_(input_buffer_.get() + kKernelSize / 2) {
-#if defined(WEBRTC_CPU_DETECTION)
   InitializeCPUSpecificFeatures();
-  assert(convolve_proc_);
-#endif
-  assert(request_frames_ > 0);
+  RTC_DCHECK(convolve_proc_);
+  RTC_DCHECK_GT(request_frames_, 0);
   Flush();
-  assert(block_size_ > kKernelSize);
+  RTC_DCHECK_GT(block_size_, kKernelSize);
 
   memset(kernel_storage_.get(), 0,
          sizeof(*kernel_storage_.get()) * kKernelStorageSize);
@@ -198,11 +185,11 @@ void SincResampler::UpdateRegions(bool second_load) {
   block_size_ = r4_ - r2_;
 
   // r1_ at the beginning of the buffer.
-  assert(r1_ == input_buffer_.get());
+  RTC_DCHECK_EQ(r1_, input_buffer_.get());
   // r1_ left of r2_, r4_ left of r3_ and size correct.
-  assert(r2_ - r1_ == r4_ - r3_);
+  RTC_DCHECK_EQ(r2_ - r1_, r4_ - r3_);
   // r2_ left of r3.
-  assert(r2_ < r3_);
+  RTC_DCHECK_LT(r2_, r3_);
 }
 
 void SincResampler::InitializeKernel() {
@@ -221,23 +208,23 @@ void SincResampler::InitializeKernel() {
 
     for (size_t i = 0; i < kKernelSize; ++i) {
       const size_t idx = i + offset_idx * kKernelSize;
-      const float pre_sinc = static_cast<float>(M_PI *
-          (static_cast<int>(i) - static_cast<int>(kKernelSize / 2) -
-           subsample_offset));
+      const float pre_sinc = static_cast<float>(
+          M_PI * (static_cast<int>(i) - static_cast<int>(kKernelSize / 2) -
+                  subsample_offset));
       kernel_pre_sinc_storage_[idx] = pre_sinc;
 
       // Compute Blackman window, matching the offset of the sinc().
       const float x = (i - subsample_offset) / kKernelSize;
       const float window = static_cast<float>(kA0 - kA1 * cos(2.0 * M_PI * x) +
-          kA2 * cos(4.0 * M_PI * x));
+                                              kA2 * cos(4.0 * M_PI * x));
       kernel_window_storage_[idx] = window;
 
       // Compute the sinc with offset, then window the sinc() function and store
       // at the correct offset.
-      kernel_storage_[idx] = static_cast<float>(window *
-          ((pre_sinc == 0) ?
-              sinc_scale_factor :
-              (sin(sinc_scale_factor * pre_sinc) / pre_sinc)));
+      kernel_storage_[idx] = static_cast<float>(
+          window * ((pre_sinc == 0)
+                        ? sinc_scale_factor
+                        : (sin(sinc_scale_factor * pre_sinc) / pre_sinc)));
     }
   }
 }
@@ -259,10 +246,10 @@ void SincResampler::SetRatio(double io_sample_rate_ratio) {
       const float window = kernel_window_storage_[idx];
       const float pre_sinc = kernel_pre_sinc_storage_[idx];
 
-      kernel_storage_[idx] = static_cast<float>(window *
-          ((pre_sinc == 0) ?
-              sinc_scale_factor :
-              (sin(sinc_scale_factor * pre_sinc) / pre_sinc)));
+      kernel_storage_[idx] = static_cast<float>(
+          window * ((pre_sinc == 0)
+                        ? sinc_scale_factor
+                        : (sin(sinc_scale_factor * pre_sinc) / pre_sinc)));
     }
   }
 }
@@ -289,7 +276,7 @@ void SincResampler::Resample(size_t frames, float* destination) {
     for (int i = static_cast<int>(
              ceil((block_size_ - virtual_source_idx_) / current_io_ratio));
          i > 0; --i) {
-      assert(virtual_source_idx_ < block_size_);
+      RTC_DCHECK_LT(virtual_source_idx_, block_size_);
 
       // |virtual_source_idx_| lies in between two kernel offsets so figure out
       // what they are.
@@ -305,10 +292,10 @@ void SincResampler::Resample(size_t frames, float* destination) {
       const float* const k1 = kernel_ptr + offset_idx * kKernelSize;
       const float* const k2 = k1 + kKernelSize;
 
-      // Ensure |k1|, |k2| are 16-byte aligned for SIMD usage.  Should always be
-      // true so long as kKernelSize is a multiple of 16.
-      assert(0u == (reinterpret_cast<uintptr_t>(k1) & 0x0F));
-      assert(0u == (reinterpret_cast<uintptr_t>(k2) & 0x0F));
+      // Ensure |k1|, |k2| are 32-byte aligned for SIMD usage.  Should always be
+      // true so long as kKernelSize is a multiple of 32.
+      RTC_DCHECK_EQ(0, reinterpret_cast<uintptr_t>(k1) % 32);
+      RTC_DCHECK_EQ(0, reinterpret_cast<uintptr_t>(k2) % 32);
 
       // Initialize input pointer based on quantized |virtual_source_idx_|.
       const float* const input_ptr = r1_ + source_idx;
@@ -316,8 +303,8 @@ void SincResampler::Resample(size_t frames, float* destination) {
       // Figure out how much to weight each kernel's "convolution".
       const double kernel_interpolation_factor =
           virtual_offset_idx - offset_idx;
-      *destination++ = CONVOLVE_FUNC(
-          input_ptr, k1, k2, kernel_interpolation_factor);
+      *destination++ =
+          convolve_proc_(input_ptr, k1, k2, kernel_interpolation_factor);
 
       // Advance the virtual index.
       virtual_source_idx_ += current_io_ratio;
@@ -356,7 +343,8 @@ void SincResampler::Flush() {
   UpdateRegions(false);
 }
 
-float SincResampler::Convolve_C(const float* input_ptr, const float* k1,
+float SincResampler::Convolve_C(const float* input_ptr,
+                                const float* k1,
                                 const float* k2,
                                 double kernel_interpolation_factor) {
   float sum1 = 0;
@@ -372,7 +360,7 @@ float SincResampler::Convolve_C(const float* input_ptr, const float* k1,
 
   // Linearly interpolate the two "convolutions".
   return static_cast<float>((1.0 - kernel_interpolation_factor) * sum1 +
-      kernel_interpolation_factor * sum2);
+                            kernel_interpolation_factor * sum2);
 }
 
 }  // namespace webrtc
