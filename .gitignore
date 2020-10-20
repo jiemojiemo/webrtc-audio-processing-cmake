@@ -22,6 +22,7 @@ config.sub
 configure
 build/
 depcomp
+install/
 install-sh
 libltdl
 libtool
