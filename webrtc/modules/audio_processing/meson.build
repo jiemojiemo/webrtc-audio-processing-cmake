@@ -191,10 +191,10 @@ if have_neon
 endif
 
 install_headers(webrtc_audio_processing_include_headers,
-    subdir: 'webrtc_audio_processing/modules/audio_processing/include'
+    subdir: join_paths(include_subdir, 'modules', 'audio_processing', 'include')
 )
 
-libwebrtc_audio_processing = library('webrtc_audio_processing',
+libwebrtc_audio_processing = library(apm_project_name,
     webrtc_audio_processing_sources,
     dependencies: [
       base_dep,
@@ -209,12 +209,12 @@ libwebrtc_audio_processing = library('webrtc_audio_processing',
     include_directories: webrtc_inc,
     c_args: common_cflags + apm_flags,
     cpp_args: common_cxxflags + apm_flags,
-    soversion: soversion,
+    soversion: apm_minor_version,
     install: true
 )
 
 webrtc_audio_processing_dep = declare_dependency(
     link_with: libwebrtc_audio_processing,
     include_directories: webrtc_inc,
-    version: meson.project_version()
+    version: apm_version
 )

@@ -12,7 +12,7 @@ system_headers = [
 ]
 
 install_headers(system_headers,
-    subdir: 'webrtc_audio_processing/system_wrappers/include'
+    subdir: join_paths(include_subdir, 'system_wrappers', 'include')
 )
 
 libsystem_wrappers = static_library('system_wrappers',

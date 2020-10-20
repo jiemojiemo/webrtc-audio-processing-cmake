@@ -1,5 +1,5 @@
-project('webrtc-audio-processing', 'c', 'cpp',
-  version : '0.4.0',
+project('webrtc-audio-processing-1', 'c', 'cpp',
+  version : '1.0',
   meson_version : '>= 0.52',
   default_options : [ 'warning_level=1',
                       'buildtype=debugoptimized',
@@ -8,7 +8,26 @@ project('webrtc-audio-processing', 'c', 'cpp',
                     ]
 )
 
-soversion = 0
+version_split = meson.project_version().split('.')
+# This will be incremented each time a breaking API change occurs
+major_version = version_split[0]
+# This will be incremented when there are backwards-compatible changes
+minor_version = version_split[1]
+
+# We maintain per-package versions to not have to break API for one if only the
+# other has breaking changes
+
+apm_major_version = major_version
+apm_minor_version = minor_version
+apm_version = apm_major_version + '.' + apm_minor_version
+apm_project_name = 'webrtc-audio-processing-' + apm_major_version
+
+ac_major_version = major_version
+ac_minor_version = minor_version
+ac_version = ac_major_version + '.' + ac_minor_version
+ac_project_name = 'webrtc-audio-coding-' + ac_major_version
+
+include_subdir = meson.project_name()
 
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
@@ -131,11 +150,11 @@ subdir('webrtc')
 pkgconfig = import('pkgconfig')
 
 pkgconfig.generate(
-    name: 'webrtc-audio-processing',
+    name: apm_project_name,
     description: 'WebRTC Audio Processing library',
-    version: meson.project_version(),
-    filebase: 'webrtc-audio-processing',
-    subdirs: 'webrtc_audio_processing',
+    version: apm_major_version + '.' + apm_minor_version,
+    filebase: apm_project_name,
+    subdirs: include_subdir,
     extra_cflags: [
       '-DWEBRTC_LIBRARY_IMPL',
     ] + platform_cflags,
@@ -143,11 +162,11 @@ pkgconfig.generate(
 )
 
 pkgconfig.generate(
-    name: 'webrtc-audio-coding',
+    name: ac_project_name,
     description: 'WebRTC Audio Coding library',
-    version: meson.project_version(),
-    filebase: 'webrtc-audio-coding',
-    subdirs: 'webrtc_audio_processing',
+    version: ac_major_version + '.' + ac_minor_version,
+    filebase: ac_project_name,
+    subdirs: include_subdir,
     extra_cflags: [
       '-DWEBRTC_LIBRARY_IMPL',
     ] + platform_cflags,

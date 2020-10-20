@@ -47,7 +47,7 @@ endif
 foreach h : base_headers
   install_headers(
     join_paths(h[0], h[1]),
-    subdir: join_paths('webrtc_audio_processing', 'rtc_base', h[0])
+    subdir: join_paths(include_subdir, 'rtc_base', h[0])
   )
 endforeach
 

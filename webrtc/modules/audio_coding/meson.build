@@ -30,30 +30,30 @@ webrtc_audio_coding_sources = [
   'codecs/isac/main/source/transform.c',
 ]
 
-libwebrtc_audio_coding = library('webrtc_audio_coding',
+libwebrtc_audio_coding = library(ac_project_name,
     webrtc_audio_coding_sources,
     dependencies: [base_dep, api_dep, common_audio_dep, system_wrappers_dep, fft_dep] + common_deps,
     include_directories: webrtc_inc,
     c_args: common_cflags,
     cpp_args: common_cxxflags,
-    soversion: soversion,
+    soversion: ac_minor_version,
     install: true
 )
 
 webrtc_audio_coding_dep = declare_dependency(
     link_with: libwebrtc_audio_coding,
     include_directories: webrtc_inc,
-    version: meson.project_version()
+    version: ac_version
 )
 
 install_headers(['codecs/isac/bandwidth_info.h'],
-    subdir: 'webrtc_audio_processing/modules/audio_coding/codecs/isac'
+    subdir: join_paths(include_subdir, 'modules', 'audio_coding', 'codecs', 'isac')
 )
 
 install_headers(['codecs/isac/main/source/settings.h'],
-    subdir: 'webrtc_audio_processing/modules/audio_coding/codecs/isac/main/source'
+    subdir: join_paths(include_subdir, 'modules', 'audio_coding', 'codecs', 'isac', 'main', 'source')
 )
 
 install_headers(['codecs/isac/main/include/isac.h'],
-    subdir: 'webrtc_audio_processing/modules/audio_coding/codecs/isac/main/include'
+    subdir: join_paths(include_subdir, 'modules', 'audio_coding', 'codecs', 'isac', 'main', 'include')
 )

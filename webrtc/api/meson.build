@@ -28,7 +28,7 @@ api_headers = [
 foreach h : api_headers
   install_headers(
     join_paths(h[0], h[1]),
-    subdir: join_paths('webrtc_audio_processing', 'api', h[0])
+    subdir: join_paths(include_subdir, 'api', h[0])
   )
 endforeach
 
