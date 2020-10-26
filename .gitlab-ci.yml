@@ -1,0 +1,62 @@
+# The build has two stages. The 'container' stage is used to build a Docker
+# container and push it to the project's container registry on fd.o GitLab.
+# This step is only run when the tag for the container changes, else it is
+# effectively a no-op. All of this infrastructure is inherited from the
+# wayland/ci-templates repository which is the recommended way to set up CI
+# infrastructure on fd.o GitLab.
+#
+# Once the container stage is done, we move on to the 'build' stage where we
+# run an autotools and meson build in parallel. Currently, tests are also run
+# as part of the build stage as there doesn't seem to be significant value to
+# splitting the stages at the moment.
+
+stages:
+  - container
+  - build
+
+variables:
+  # Update this tag when you want to trigger a rebuild the container in which
+  # CI runs, for example when adding new packages to FDO_DISTRIBUTION_PACKAGES.
+  # The tag is an arbitrary string that identifies the exact container
+  # contents.
+  FDO_DISTRIBUTION_TAG: '2020-10-26.1'
+  FDO_DISTRIBUTION_VERSION: '20.10'
+  FDO_UPSTREAM_REPO: 'pulseaudio/webrtc-audio-processing'
+  UBUNTU_IMAGE: "$CI_REGISTRY_IMAGE/ubuntu/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG"
+
+include:
+  # We pull templates from master to avoid the overhead of periodically
+  # scanning for changes upstream. This does means builds might occasionally
+  # break due to upstream changing things, so if you see unexpected build
+  # failures, this might be one cause.
+  - project: 'freedesktop/ci-templates'
+    ref: 'master'
+    file: '/templates/ubuntu.yml'
+
+build-container:
+  extends: .fdo.container-build@ubuntu
+  stage: container
+  variables:
+    GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
+
+    # Remember to update FDO_DISTRIBUTION_TAG when modifying this package list!
+    # Otherwise the changes won't have effect since an old container image will
+    # be used.
+    FDO_DISTRIBUTION_PACKAGES: >-
+      g++
+      gcc
+      libabsl-dev
+      meson
+      ninja-build
+      python3-setuptools
+
+build:
+  stage: build
+  image: $UBUNTU_IMAGE
+  script:
+    - meson build
+    - cd build
+    - ninja
+  artifacts:
+    paths:
+      - build/
