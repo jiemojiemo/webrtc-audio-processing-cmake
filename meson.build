@@ -1,6 +1,6 @@
 project('webrtc-audio-processing-1', 'c', 'cpp',
   version : '1.0',
-  meson_version : '>= 0.52',
+  meson_version : '>= 0.54',
   default_options : [ 'warning_level=1',
                       'buildtype=debugoptimized',
                       'c_std=c11',
@@ -161,6 +161,11 @@ pkgconfig.generate(
     libraries: libwebrtc_audio_processing,
 )
 
+audio_processing_dep = declare_dependency(link_with : libwebrtc_audio_processing,
+    include_directories : [webrtc_inc])
+
+meson.override_dependency(apm_project_name, audio_processing_dep)
+
 pkgconfig.generate(
     name: ac_project_name,
     description: 'WebRTC Audio Coding library',
@@ -172,3 +177,8 @@ pkgconfig.generate(
     ] + platform_cflags,
     libraries: libwebrtc_audio_coding,
 )
+
+audio_coding_dep = declare_dependency(link_with : libwebrtc_audio_coding,
+    include_directories : [webrtc_inc])
+
+meson.override_dependency(ac_project_name, audio_coding_dep)
