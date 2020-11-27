@@ -26,8 +26,19 @@ git tag -s -m 'WebRTC AudioProcessing v<X.y>' v<X.y>
 
 ```sh
 git archive --format 'tar.gz' \
-  --prefix webrtc-audio-processing-X.y -9 vX.y \
+  --prefix 'webrtc-audio-processing-X.y/' -9 vX.y \
   > webrtc-audio-processing-X.y.tar.gz
+```
+
+## Do a test build
+
+```sh
+tar xvf webrtc-audio-processing-X.y.tar.gz
+cd webrtc-audio-processing-X.y
+meson . build -Dprefix=$PWD/install
+ninja -C build
+ninja -C build install
+cd ..
 ```
 
 ## Checksum the tarball
