@@ -186,7 +186,7 @@ endif
 
 if have_neon
   webrtc_audio_processing_sources += [
-    'aecm/aecm_core_neon.c',
+    'aecm/aecm_core_neon.cc',
   ]
 endif
 

@@ -124,7 +124,7 @@ if have_neon
     'signal_processing/cross_correlation_neon.c',
     'signal_processing/downsample_fast_neon.c',
     'signal_processing/min_max_operations_neon.c',
-    'third_party/ooura/fft_size_128/ooura_fft_neon.c',
+    'third_party/ooura/fft_size_128/ooura_fft_neon.cc',
   ]
 endif
 
