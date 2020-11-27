@@ -2,8 +2,9 @@ About
 =====
 
 This is meant to be a more Linux packaging friendly copy of the AudioProcessing
-module from the WebRTC[1] project. The ideal case is that we make no changes to
-the code to make tracking upstream code easy.
+module from the [ WebRTC ](https://webrtc.googlesource.com/src) project. The
+ideal case is that we make no changes to the code to make tracking upstream
+code easy.
 
 This package currently only includes the AudioProcessing bits, but I am very
 open to collaborating with other projects that wish to distribute other bits of
@@ -11,14 +12,11 @@ the code and hopefully eventually have a single point of packaging all the
 WebRTC code to help people reuse the code and avoid keeping private copies in
 several different projects.
 
-[1] https://webrtc.googlesource.com/src
-
 Feedback
 ========
 
-Patches, suggestions welcome. You can file an issue on our Gitlab repository[2].
-
-[2] https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing/
+Patches, suggestions welcome. You can file an issue on our Gitlab
+[repository](https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing/).
 
 Notes
 ====
