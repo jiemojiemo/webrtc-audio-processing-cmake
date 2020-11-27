@@ -16,20 +16,13 @@ several different projects.
 Feedback
 ========
 
-Patches, suggestions welcome. You can send them to the PulseAudio mailing
-list[2] or to me at the address below.
+Patches, suggestions welcome. You can file an issue on our Gitlab repository[2].
 
--- Arun Raghavan <mail@arunraghavan.net>
-
-[2] http://lists.freedesktop.org/mailman/listinfo/pulseaudio-discuss
+[2] https://gitlab.freedesktop.org/pulseaudio/webrtc-audio-processing/
 
 Notes
 ====
 
-1. Some files need to be patch to avoid pulling in the gtest framework. This
-   should ideally be pushed upstream in some way so we're able to just pull
-   in what we need without changing anything.
-
-2. It might be nice to try LTO on the library. We build a lot of code as part
+1. It might be nice to try LTO on the library. We build a lot of code as part
    of the main AudioProcessing module deps, and it's possible that this could
    provide significant space savings.
