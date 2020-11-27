@@ -19,10 +19,9 @@ variables:
   # CI runs, for example when adding new packages to FDO_DISTRIBUTION_PACKAGES.
   # The tag is an arbitrary string that identifies the exact container
   # contents.
-  FDO_DISTRIBUTION_TAG: '2020-10-26.1'
+  BASE_TAG: '2020-11-27.1'
   FDO_DISTRIBUTION_VERSION: '20.10'
   FDO_UPSTREAM_REPO: 'pulseaudio/webrtc-audio-processing'
-  UBUNTU_IMAGE: "$CI_REGISTRY_IMAGE/ubuntu/$FDO_DISTRIBUTION_VERSION:$FDO_DISTRIBUTION_TAG"
 
 include:
   # We pull templates from master to avoid the overhead of periodically
@@ -33,9 +32,8 @@ include:
     ref: 'master'
     file: '/templates/ubuntu.yml'
 
-build-container:
-  extends: .fdo.container-build@ubuntu
-  stage: container
+# Common container build template
+.ubuntu-container-build:
   variables:
     GIT_STRATEGY: none # no need to pull the whole tree for rebuilding the image
 
@@ -50,9 +48,37 @@ build-container:
       ninja-build
       python3-setuptools
 
-build:
+# Used to extend both container and build jobs
+.ubuntu-x86_64:
+  variables:
+    FDO_DISTRIBUTION_TAG: "x86_64-$BASE_TAG"
+
+# Used to extend both container and build jobs
+.ubuntu-aarch64:
+  tags:
+    - aarch64
+  variables:
+    FDO_DISTRIBUTION_TAG: "aarch64-$BASE_TAG"
+
+build-container-x86_64:
+  extends:
+    - .fdo.container-build@ubuntu@x86_64
+    - .ubuntu-container-build
+    - .ubuntu-x86_64
+  stage: container
+
+build-container-aarch64:
+  extends:
+    - .fdo.container-build@ubuntu@aarch64
+    - .ubuntu-container-build
+    - .ubuntu-aarch64
+  stage: container
+
+# Common build template
+.build:
   stage: build
-  image: $UBUNTU_IMAGE
+  extends:
+    - .fdo.distribution-image@ubuntu
   script:
     - meson build
     - cd build
@@ -60,3 +86,13 @@ build:
   artifacts:
     paths:
       - build/
+
+build-x86_64:
+  extends:
+    - .build
+    - .ubuntu-x86_64
+
+build-aarch64:
+  extends:
+    - .build
+    - .ubuntu-aarch64
