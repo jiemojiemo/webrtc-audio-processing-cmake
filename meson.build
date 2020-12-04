@@ -1,4 +1,4 @@
-project('webrtc-audio-processing-1', 'c', 'cpp',
+project('webrtc-audio-processing', 'c', 'cpp',
   version : '1.1',
   meson_version : '>= 0.54',
   default_options : [ 'warning_level=1',
@@ -27,7 +27,7 @@ ac_minor_version = minor_version
 ac_version = ac_major_version + '.' + ac_minor_version
 ac_project_name = 'webrtc-audio-coding-' + ac_major_version
 
-include_subdir = meson.project_name()
+include_subdir = apm_project_name
 
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
