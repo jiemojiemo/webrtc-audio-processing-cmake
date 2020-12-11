@@ -40,19 +40,14 @@ os_deps = []
 have_posix = false
 have_win = false
 
-absl_dep = [
-  cpp.find_library('absl_base'),
-  cpp.find_library('absl_bad_optional_access'),
-  cpp.find_library('absl_flags_internal'),
-  cpp.find_library('absl_flags_marshalling'),
-  cpp.find_library('absl_flags_parse'),
-  cpp.find_library('absl_flags_registry'),
-  cpp.find_library('absl_flags_usage_internal'),
-  cpp.find_library('absl_raw_logging_internal'),
-  cpp.find_library('absl_strings'),
-  cpp.find_library('absl_synchronization'),
-  cpp.find_library('absl_throw_delegate'),
-]
+absl_dep = dependency('absl', method : 'cmake',
+  modules : [
+    'absl::base',
+    'absl::flags_parse',
+    'absl::strings',
+    'absl::synchronization',
+  ]
+)
 
 if ['darwin', 'ios'].contains(host_system)
   os_cflags = ['-DWEBRTC_MAC']
