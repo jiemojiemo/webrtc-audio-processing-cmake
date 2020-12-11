@@ -83,8 +83,8 @@ have_mips = false
 have_mips64 = false
 have_x86 = false
 have_avx2 = false
-if ['arm', 'armv7'].contains(host_machine.cpu_family())
-  if cc.compiles('''#ifdef __ARM_ARCH_ISA_ARM
+if host_machine.cpu_family() == 'arm'
+  if cc.compiles('''#ifndef __ARM_ARCH_ISA_ARM
 #error no arm arch
 #endif''')
     have_arm = true
