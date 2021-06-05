@@ -46,8 +46,46 @@ absl_dep = dependency('absl', method : 'cmake',
     'absl::flags_parse',
     'absl::strings',
     'absl::synchronization',
-  ]
+  ],
+  required : false,
 )
+
+if not absl_dep.found()
+  warning('Could not find abseil-cpp with CMake, using fallback library detection which may fail.')
+  absl_libs = [
+    'absl_base',
+    'absl_bad_optional_access',
+    'absl_city',
+    'absl_flags_commandlineflag',
+    'absl_flags_commandlineflag_internal',
+    'absl_flags_config',
+    'absl_flags_internal',
+    'absl_flags_marshalling',
+    'absl_flags_parse',
+    'absl_flags_private_handle_accessor',
+    'absl_flags_program_name',
+    'absl_flags_reflection',
+    'absl_flags_usage',
+    'absl_flags_usage_internal',
+    'absl_hash',
+    'absl_int128',
+    'absl_malloc_internal',
+    'absl_raw_logging_internal',
+    'absl_spinlock_wait',
+    'absl_stacktrace',
+    'absl_str_format_internal',
+    'absl_strings',
+    'absl_symbolize',
+    'absl_synchronization',
+    'absl_throw_delegate',
+    'absl_time',
+    'absl_time_zone',
+  ]
+  absl_dep = []
+  foreach l : absl_libs
+    absl_dep += cpp.find_library(l, required : false)
+  endforeach
+endif
 
 if ['darwin', 'ios'].contains(host_system)
   os_cflags = ['-DWEBRTC_MAC']
