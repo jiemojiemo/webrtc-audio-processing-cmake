@@ -14,7 +14,11 @@
 namespace webrtc {
 
 #if defined(WEBRTC_ANDROID) && !defined(WEBRTC_CHROMIUM_BUILD)
+/* webrtc-audio-processing:
+ * We don't support the Android SDK integration for this, so stub out
 void WarnThatTheCurrentThreadIsProbablyDeadlocked();
+ */
+inline void WarnThatTheCurrentThreadIsProbablyDeadlocked() {}
 #else
 inline void WarnThatTheCurrentThreadIsProbablyDeadlocked() {}
 #endif
