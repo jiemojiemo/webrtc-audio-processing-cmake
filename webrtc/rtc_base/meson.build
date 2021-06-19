@@ -51,9 +51,24 @@ foreach h : base_headers
   )
 endforeach
 
+base_os_deps = []
+if host_system == 'darwin'
+  base_os_deps += dependency('appleframeworks', modules: [ 'Foundation' ])
+elif host_system == 'ios'
+  base_os_deps += dependency('appleframeworks',
+    modules: [
+      'CFNetwork',
+      'Foundation',
+      'Security',
+      'SystemConfiguration',
+      'UIKit',
+    ]
+  )
+endif
+
 libbase = static_library('libbase',
     base_sources,
-    dependencies: common_deps,
+    dependencies: common_deps + base_os_deps,
     include_directories: webrtc_inc,
     cpp_args : common_cxxflags
 )
