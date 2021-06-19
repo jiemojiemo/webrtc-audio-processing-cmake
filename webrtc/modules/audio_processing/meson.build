@@ -199,7 +199,7 @@ libwebrtc_audio_processing = library(apm_project_name,
     dependencies: [
       base_dep,
       api_dep,
-      webrtc_audio_coding_dep,
+      isac_vad_dep,
       system_wrappers_dep,
       common_audio_dep,
       pffft_dep,
