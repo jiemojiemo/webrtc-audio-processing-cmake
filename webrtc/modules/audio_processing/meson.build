@@ -88,7 +88,6 @@ webrtc_audio_processing_sources = [
   'agc2/rnn_vad/pitch_search.cc',
   'agc2/rnn_vad/pitch_search_internal.cc',
   'agc2/rnn_vad/rnn.cc',
-  'agc2/rnn_vad/rnn_vad_tool.cc',
   'agc2/rnn_vad/spectral_features.cc',
   'agc2/rnn_vad/spectral_features_internal.cc',
   'agc2/saturation_protector.cc',

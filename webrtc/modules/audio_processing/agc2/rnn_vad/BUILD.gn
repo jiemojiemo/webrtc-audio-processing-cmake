@@ -215,19 +215,4 @@ if (rtc_include_tests) {
       deps += [ ":unittests_bundle_data" ]
     }
   }
-
-  rtc_executable("rnn_vad_tool") {
-    testonly = true
-    sources = [ "rnn_vad_tool.cc" ]
-    deps = [
-      ":rnn_vad",
-      ":rnn_vad_common",
-      "../../../../api:array_view",
-      "../../../../common_audio",
-      "../../../../rtc_base:rtc_base_approved",
-      "../../../../test:test_support",
-      "//third_party/abseil-cpp/absl/flags:flag",
-      "//third_party/abseil-cpp/absl/flags:parse",
-    ]
-  }
 }
