@@ -19,7 +19,7 @@ variables:
   # CI runs, for example when adding new packages to FDO_DISTRIBUTION_PACKAGES.
   # The tag is an arbitrary string that identifies the exact container
   # contents.
-  BASE_TAG: '2020-12-10.1'
+  BASE_TAG: '2021-10-19.1'
   FDO_DISTRIBUTION_VERSION: '20.10'
   FDO_UPSTREAM_REPO: 'pulseaudio/webrtc-audio-processing'
 
@@ -43,10 +43,12 @@ include:
     FDO_DISTRIBUTION_PACKAGES: >-
       g++
       gcc
+      git-core
       cmake
       libabsl-dev
       meson
       ninja-build
+      pkg-config
       python3-setuptools
 
 # Used to extend both container and build jobs
@@ -76,24 +78,46 @@ build-container-aarch64:
   stage: container
 
 # Common build template
-.build:
+.build-distro-absl:
   stage: build
   extends:
     - .fdo.distribution-image@ubuntu
   script:
-    - meson build
+    - meson build --wrap-mode=nofallback
     - cd build
     - ninja
   artifacts:
     paths:
       - build/
 
-build-x86_64:
+.build-vendored-absl:
+  stage: build
   extends:
-    - .build
+    - .fdo.distribution-image@ubuntu
+  script:
+    - meson build --force-fallback-for=abseil-cpp
+    - cd build
+    - ninja
+  artifacts:
+    paths:
+      - build/
+
+build-distro-absl-x86_64:
+  extends:
+    - .build-distro-absl
     - .ubuntu-x86_64
 
-build-aarch64:
+build-vendored-absl-x86_64:
   extends:
-    - .build
+    - .build-vendored-absl
+    - .ubuntu-x86_64
+
+build-distro-absl-aarch64:
+  extends:
+    - .build-distro-absl
+    - .ubuntu-aarch64
+
+build-vendored-absl-aarch64:
+  extends:
+    - .build-vendored-absl
     - .ubuntu-aarch64
