@@ -40,51 +40,71 @@ os_deps = []
 have_posix = false
 have_win = false
 
-absl_dep = dependency('absl', method : 'cmake',
-  modules : [
-    'absl::base',
-    'absl::flags_parse',
-    'absl::strings',
-    'absl::synchronization',
-  ],
-  required : false,
-)
+# Let's use pkg-config if available. This will also fallback to the subproject
+# if pkg-config is not found, instead of CMake or manual library detection.
+# This might be surprising, but is hopefully a temporary state until recent
+# abseil versions become the norm.
+absl_base_dep = dependency('absl_base', required : false)
+absl_flags_dep = dependency('absl_flags', required : false)
+absl_strings_dep = dependency('absl_strings', required : false)
+absl_synchronization_dep = dependency('absl_synchronization', required : false)
 
-if not absl_dep.found()
-  warning('Could not find abseil-cpp with CMake, using fallback library detection which may fail.')
-  absl_libs = [
-    'absl_base',
-    'absl_bad_optional_access',
-    'absl_city',
-    'absl_flags_commandlineflag',
-    'absl_flags_commandlineflag_internal',
-    'absl_flags_config',
-    'absl_flags_internal',
-    'absl_flags_marshalling',
-    'absl_flags_parse',
-    'absl_flags_private_handle_accessor',
-    'absl_flags_program_name',
-    'absl_flags_reflection',
-    'absl_flags_usage',
-    'absl_flags_usage_internal',
-    'absl_hash',
-    'absl_int128',
-    'absl_malloc_internal',
-    'absl_raw_logging_internal',
-    'absl_spinlock_wait',
-    'absl_stacktrace',
-    'absl_str_format_internal',
-    'absl_strings',
-    'absl_symbolize',
-    'absl_synchronization',
-    'absl_throw_delegate',
-    'absl_time',
-    'absl_time_zone',
+# If we have the base dep, assume the rest should be present to
+if absl_base_dep.found()
+  absl_dep = [
+    absl_base_dep,
+    absl_flags_dep,
+    absl_strings_dep,
+    absl_synchronization_dep
   ]
-  absl_dep = []
-  foreach l : absl_libs
-    absl_dep += cpp.find_library(l, required : false)
-  endforeach
+else
+  warning('Could not find abseil-cpp with pkg-config, trying CMake-based library detection.')
+  absl_dep = dependency('absl', method : 'cmake',
+    modules : [
+      'absl::base',
+      'absl::flags_parse',
+      'absl::strings',
+      'absl::synchronization',
+    ],
+    required : false,
+  )
+
+  if not absl_dep.found()
+    warning('Could not find abseil-cpp with CMake, using fallback library detection which may fail.')
+    absl_libs = [
+      'absl_base',
+      'absl_bad_optional_access',
+      'absl_city',
+      'absl_flags_commandlineflag',
+      'absl_flags_commandlineflag_internal',
+      'absl_flags_config',
+      'absl_flags_internal',
+      'absl_flags_marshalling',
+      'absl_flags_parse',
+      'absl_flags_private_handle_accessor',
+      'absl_flags_program_name',
+      'absl_flags_reflection',
+      'absl_flags_usage',
+      'absl_flags_usage_internal',
+      'absl_hash',
+      'absl_int128',
+      'absl_malloc_internal',
+      'absl_raw_logging_internal',
+      'absl_spinlock_wait',
+      'absl_stacktrace',
+      'absl_str_format_internal',
+      'absl_strings',
+      'absl_symbolize',
+      'absl_synchronization',
+      'absl_throw_delegate',
+      'absl_time',
+      'absl_time_zone',
+    ]
+    absl_dep = []
+    foreach l : absl_libs
+      absl_dep += cpp.find_library(l, required : false)
+    endforeach
+  endif
 endif
 
 if ['darwin', 'ios'].contains(host_system)
