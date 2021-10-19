@@ -12,6 +12,7 @@
 #define MODULES_AUDIO_PROCESSING_AEC3_REVERB_FREQUENCY_RESPONSE_H_
 
 #include <array>
+#include <memory>
 #include <vector>
 
 #include "absl/types/optional.h"
