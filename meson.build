@@ -48,6 +48,7 @@ absl_base_dep = dependency('absl_base', required : false)
 absl_flags_dep = dependency('absl_flags', required : false)
 absl_strings_dep = dependency('absl_strings', required : false)
 absl_synchronization_dep = dependency('absl_synchronization', required : false)
+absl_types_dep = dependency('absl_optional', required : false)
 
 # If we have the base dep, assume the rest should be present to
 if absl_base_dep.found()
@@ -55,7 +56,8 @@ if absl_base_dep.found()
     absl_base_dep,
     absl_flags_dep,
     absl_strings_dep,
-    absl_synchronization_dep
+    absl_synchronization_dep,
+    absl_types_dep,
   ]
 else
   warning('Could not find abseil-cpp with pkg-config, trying CMake-based library detection.')
@@ -63,6 +65,7 @@ else
     modules : [
       'absl::base',
       'absl::flags_parse',
+      'absl::optional',
       'absl::strings',
       'absl::synchronization',
     ],
