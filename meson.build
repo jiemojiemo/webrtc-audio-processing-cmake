@@ -192,7 +192,7 @@ if ['x86', 'x86_64'].contains(host_machine.cpu_family())
 endif
 
 neon_opt = get_option('neon')
-if neon_opt != 'no'
+if neon_opt != 'no' and not have_neon
   if neon_opt != 'runtime'
     if cc.compiles('#include <arm_neon.h>', args : '-mfpu=neon')
       arch_cflags += ['-mfpu=neon', '-DWEBRTC_HAS_NEON']
