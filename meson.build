@@ -199,7 +199,7 @@ if neon_opt != 'no'
       have_neon = true
     endif
   else
-    neon_opt += ['-DWEBRTC_DETECT_NEON', '-mfpu=neon']
+    arch_cflags += ['-DWEBRTC_DETECT_NEON', '-mfpu=neon']
     have_neon = true
   endif
 endif
