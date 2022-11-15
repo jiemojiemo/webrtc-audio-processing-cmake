@@ -5,8 +5,6 @@ project(webrtc-audio-processing)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
 
-message(STATUS "${CMAKE_SYSTEM_NAME}")
-
 if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
     add_definitions(-DWEBRTC_MAC)
     set(have_posix TRUE)
