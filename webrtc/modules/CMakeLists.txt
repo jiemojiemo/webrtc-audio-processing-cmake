@@ -12,6 +12,10 @@ if(NOT have_mips64)
     list(REMOVE_ITEM AUDIO_PROCESSING_SRC "${CMAKE_CURRENT_SOURCE_DIR}/audio_processing/aecm/aecm_core_mips.cc")
 endif()
 
+if(NOT have_neon)
+    list(REMOVE_ITEM AUDIO_PROCESSING_SRC "${CMAKE_CURRENT_SOURCE_DIR}/audio_processing/aecm/aecm_core_neon.cc")
+endif()
+
 list(REMOVE_ITEM AUDIO_PROCESSING_SRC "${CMAKE_CURRENT_SOURCE_DIR}/audio_processing/agc2/rnn_vad/test_utils.cc")
 list(REMOVE_ITEM AUDIO_PROCESSING_SRC "${CMAKE_CURRENT_SOURCE_DIR}/audio_processing/agc2/fixed_gain_controller.cc")
 list(REMOVE_ITEM AUDIO_PROCESSING_SRC "${CMAKE_CURRENT_SOURCE_DIR}/audio_processing/transient/click_annotate.cc")

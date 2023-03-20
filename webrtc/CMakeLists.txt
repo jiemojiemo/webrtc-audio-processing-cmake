@@ -6,6 +6,15 @@ add_subdirectory(modules)
 add_subdirectory(system_wrappers)
 add_subdirectory(third_party)
 
+if (have_neon)
+    add_compile_options(-mfloat-abi=soft)
+    add_link_options(-mfloat-abi=soft)
+endif()
+
+if (have_avx2)
+    add_compile_options(-mavx -mfma)
+endif()
+
 add_library(libwebrtc_audio_processing STATIC
         ${API_SRC}
         ${AUDIO_SRC}
