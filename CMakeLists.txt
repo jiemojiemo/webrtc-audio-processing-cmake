@@ -88,3 +88,5 @@ add_definitions(-DWEBRTC_LIBRARY_IMPL -DNDEBUG)
 
 add_subdirectory(abseil-cpp EXCLUDE_FROM_ALL)
 add_subdirectory(webrtc)
+
+add_subdirectory(example)

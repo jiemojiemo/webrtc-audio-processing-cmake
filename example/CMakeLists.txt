@@ -1,0 +1,2 @@
+add_executable(aec3_demo aec3_demo.cpp)
+target_link_libraries(aec3_demo PRIVATE libwebrtc_audio_processing)
