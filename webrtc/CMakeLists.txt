@@ -23,6 +23,7 @@ add_library(libwebrtc_audio_processing STATIC
         ${SYSTEM_WRAPPERS_SRC}
         ${RTC_BASE_SRC}
         ${THIRD_PARTY_SRC}
+        wrapper/webrtc_apm_wrapper.cpp
         )
 target_compile_definitions(libwebrtc_audio_processing PRIVATE WEBRTC_APM_DEBUG_DUMP=0)
 

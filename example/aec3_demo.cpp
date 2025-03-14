@@ -4,8 +4,11 @@
 #define DR_WAV_IMPLEMENTATION
 #include "dr_wav.h"
 
-#define WEBRTC_APM_DEBUG_DUMP 0
-#include "modules/audio_processing/aec3/echo_canceller3.h"
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <modules/audio_processing/include/audio_processing.h>
+#include "wrapper/webrtc_apm_wrapper.h"
 
 class WavDataInfo {
 public:
@@ -66,7 +69,7 @@ std::unique_ptr<WavDataInfo> OpenWavAndReadPcm(const std::string& path) {
   return wavDataInfo;
 }
 
-using namespace webrtc;
+// using namespace webrtc;
 int main(int argc, char* argv[])
 {
   if (argc < 3)
@@ -115,21 +118,20 @@ int main(int argc, char* argv[])
     return -1;
   }
 
-  // create APM
-  auto config = webrtc::AudioProcessing::Config();
-  config.echo_canceller.enabled = true;
-  config.gain_controller1.enabled = false;
-  config.gain_controller2.enabled = false;
-  config.noise_suppression.enabled = false;
 
-  auto apm = std::unique_ptr<AudioProcessing>(webrtc::AudioProcessingBuilder().Create());
-  apm->ApplyConfig(config);
-  webrtc::StreamConfig input_config(far_wav_data->sampleRate, far_wav_data->channels);
-  webrtc::StreamConfig output_config(near_wav_data->sampleRate, near_wav_data->channels);
+
+
+  // create APM
+  auto* apm = webrtc_apm_create();
+  APMConfig config;
+  config.echo_canceller.enabled = true;
+  webrtc_apm_apply_config(apm, &config);
+
+  // prepare for process
+  webrtc_apm_prepare(apm, far_wav_data->sampleRate, far_wav_data->channels);
 
   // processing and write to output wave
   const int samples_per_frame = far_wav_data->sampleRate / 100;
-
   std::vector<float> far_frame(samples_per_frame);
   std::vector<float> near_frame(samples_per_frame);
   for (;;) {
@@ -143,11 +145,11 @@ int main(int argc, char* argv[])
 
     const float* input_src[1] = {far_frame.data()};
     float* input_dest[1] = {far_frame.data()};
-    apm->ProcessReverseStream(input_src, input_config, output_config, input_dest);
+    webrtc_apm_process_reverse_stream(apm, input_src, input_dest);
 
     const float* output_src[1] = {near_frame.data()};
     float* output_dest[1] = {near_frame.data()};
-    apm->ProcessStream(output_src, input_config, output_config, output_dest);
+    webrtc_apm_process_stream(apm, output_src, output_dest);
 
     // write output to wav
     drwav_uint64 samples_written = drwav_write_pcm_frames(&wav, samples_per_frame, near_frame.data());
@@ -156,6 +158,8 @@ int main(int argc, char* argv[])
       return -1;
     }
   }
+
+  webrtc_apm_destroy(apm);
 
   printf("aec processing done, result write to %s\n", output_path);
   drwav_uninit(&wav);
