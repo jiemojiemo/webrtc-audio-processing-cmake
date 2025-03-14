@@ -39,3 +39,11 @@ endif()
 target_include_directories(webrtc_apm_wrapper PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}"
         )
+
+install(TARGETS webrtc_apm_wrapper
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        )
+
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/wrapper"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/webrtc_apm
+        FILES_MATCHING PATTERN "*.h")
