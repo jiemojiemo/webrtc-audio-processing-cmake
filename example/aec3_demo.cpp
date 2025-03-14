@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <memory>
 #include <string>
-#include <modules/audio_processing/include/audio_processing.h>
 #include "wrapper/webrtc_apm_wrapper.h"
 
 class WavDataInfo {
